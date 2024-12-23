@@ -1,0 +1,2 @@
+C:/shubham/newprg/android/app/.cxx/Debug/1r3o3314/x86_64/CMakeFiles/edit_cache.dir
+C:/shubham/newprg/android/app/.cxx/Debug/1r3o3314/x86_64/CMakeFiles/rebuild_cache.dir

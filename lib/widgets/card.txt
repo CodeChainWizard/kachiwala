@@ -1,0 +1,703 @@
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:kachiwala/models/product.dart';
+import 'dart:io' as io;
+
+class ProductCard extends StatefulWidget {
+  final Product product;
+  final int index;
+  final GlobalKey repaintBoundaryKey;
+
+  ProductCard({
+    required this.product,
+    required this.index,
+    required this.repaintBoundaryKey,
+  });
+
+  @override
+  _ProductCardState createState() => _ProductCardState();
+}
+
+class _ProductCardState extends State<ProductCard> {
+  bool isSelected = false; // Track the selection state of the product
+  bool hasLongPressed = false; // Track if the user has long pressed at least once
+
+  // ---- Code to share product image and details ----
+  Future<void> _shareProduct(int index, Product product) async {
+    try {
+      if (product.image != null) {
+        // Decode the product image from Base64
+        Uint8List productImageBytes = base64Decode(product.image!);
+
+        // Create an image file for sharing
+        final directory = await getTemporaryDirectory();
+        final filePath = '${directory.path}/product_$index.png';
+        final file = io.File(filePath);
+        await file.writeAsBytes(productImageBytes);
+
+        // Prepare the text for sharing
+        String shareText = 'Check out this product:\n\n'
+            'Name: ${product.name}\n'
+            'Description: ${product.description}\n'
+            'Rate: \$${product.rate}\n';
+
+        // Share the image along with the text
+        await Share.shareXFiles(
+          [XFile(filePath)],
+          text: shareText,
+          subject: 'Product Sharing',
+        );
+      } else {
+        print("Product does not have an image.");
+      }
+    } catch (e) {
+      print("Error sharing product: $e");
+    }
+  }
+
+  // Handle long press to initially select
+  void _onLongPress() {
+    setState(() {
+      hasLongPressed = true; // Mark that long press has occurred
+      isSelected = true; // Select the product on long press
+    });
+  }
+
+  // Handle single tap to select/deselect after long press
+  void _onTap() {
+    if (hasLongPressed) {
+      setState(() {
+        isSelected = !isSelected; // Toggle selection only after long press
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onLongPress: _onLongPress, // Trigger selection on long press
+      onTap: _onTap, // Trigger selection toggle on tap after long press
+      child: Card(
+        margin: EdgeInsets.all(8.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Product Image
+            Expanded(
+              child: widget.product.image != null
+                  ? ClipRRect(
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(8.0),
+                ),
+                child: Image.memory(
+                  base64Decode(widget.product.image!),
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                ),
+              )
+                  : Icon(
+                Icons.image,
+                size: 100,
+                color: Colors.grey,
+              ),
+            ),
+            // Product Details and Share Button
+            Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Product Details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.product.name,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        SizedBox(height: 4.0),
+                        Text(
+                          widget.product.description,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        SizedBox(height: 4.0),
+                        Text(
+                          widget.product.rate.toString(),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Share Button
+                  IconButton(
+                    icon: Icon(Icons.share),
+                    onPressed: () => _shareProduct(widget.index, widget.product),
+                  ),
+                ],
+              ),
+            ),
+            // Checkbox for multiple selection
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.0),
+              child: Row(
+                children: [
+                  Checkbox(
+                    value: isSelected,
+                    onChanged: (bool? value) {
+                      if (hasLongPressed) {
+                        setState(() {
+                          isSelected = value ?? false;
+                        });
+                      }
+                    },
+                  ),
+                  Text('Select'),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// --- Home.dart ---
+class _HomePageState extends State<HomePage> {
+  List<Product> products = [];
+  List<Product> filteredProducts = [];
+  String searchQuery = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProducts();
+  }
+
+  void _refreshProducts() {
+    _fetchProducts();
+  }
+
+  Future<void> _fetchProducts() async {
+    try {
+      final fetchedProducts = await ApiService.fetchProducts();
+      if (fetchedProducts != null) {
+        print("Fetch: $fetchedProducts");
+      }
+      if (!mounted) return;
+
+      setState(() {
+        products = fetchedProducts;
+        filteredProducts = List.from(fetchedProducts);
+      });
+    } catch (error) {
+      print("Error fetching products: $error");
+    }
+  }
+
+  void _onSearchChanged(String query) {
+    setState(() {
+      searchQuery = query;
+      if (query.isEmpty) {
+        filteredProducts = List.from(products);
+      } else {
+        filteredProducts = products.where((product) {
+          return product.name.toLowerCase().contains(query.toLowerCase()) ||
+              product.description.toLowerCase().contains(query.toLowerCase());
+        }).toList();
+      }
+    });
+  }
+
+  void _applySortFilter(String filter) {
+    setState(() {
+      if (filter == 'A-Z') {
+        filteredProducts = List.from(products)
+          ..sort((a, b) => a.name.compareTo(b.name));
+      } else if (filter == 'Z-A') {
+        filteredProducts = List.from(products)
+          ..sort((a, b) => b.name.compareTo(a.name));
+      } else if (filter == 'Price Low to High') {
+        filteredProducts = List.from(products)
+          ..sort((a, b) => double.parse(a.rate.toString())
+              .compareTo(double.parse(b.rate.toString())));
+      } else if (filter == 'Price High to Low') {
+        filteredProducts = List.from(products)
+          ..sort((a, b) => double.parse(b.rate.toString())
+              .compareTo(double.parse(a.rate.toString())));
+      }
+    });
+  }
+
+  void _logout() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => LoginPage()),
+          (route) => false,
+    );
+  }
+
+  void openTerminal(BuildContext context) {
+    if (Platform.isWindows) {
+      Process.start('cmd.exe', ['/K', 'echo Terminal is now open!']);
+    } else if (Platform.isMacOS) {
+      Process.start('open', ['-a', 'Terminal']);
+    } else if (Platform.isLinux) {
+      Process.start('gnome-terminal', []);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Terminal not supported on this platform.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Product List'),
+        leading: IconButton(
+          icon: Icon(Icons.logout),
+          onPressed: _logout, // Calls the logout function
+          tooltip: 'Logout',
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: _fetchProducts, // Calls the fetch function
+            tooltip: 'Refresh Products',
+          ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              _applySortFilter(value);
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'A-Z',
+                child: Row(
+                  children: [
+                    Checkbox(value: false, onChanged: (_) {}),
+                    Text('A-Z'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'Z-A',
+                child: Row(
+                  children: [
+                    Checkbox(value: false, onChanged: (_) {}),
+                    Text('Z-A'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'Price Low to High',
+                child: Row(
+                  children: [
+                    Checkbox(value: false, onChanged: (_) {}),
+                    Text('Price Low to High'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'Price High to Low',
+                child: Row(
+                  children: [
+                    Checkbox(value: false, onChanged: (_) {}),
+                    Text('Price High to Low'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          CustomSearchBar(onSearchChanged: _onSearchChanged),
+          Expanded(
+            child: filteredProducts.isEmpty
+                ? const Center(
+              child: Text(
+                "No Product Found",
+                style: TextStyle(fontSize: 18, color: Colors.grey),
+              ),
+            )
+                : GridView.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 8.0,
+                crossAxisSpacing: 8.0,
+                childAspectRatio: 3 / 4,
+              ),
+              itemCount: filteredProducts.length,
+              itemBuilder: (context, index) {
+                final repaintBoundaryKey = GlobalKey();
+                return ProductCard(
+                  product: filteredProducts[index],
+                  index: index,
+                  repaintBoundaryKey: repaintBoundaryKey,
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => showDialog(
+          context: context,
+          builder: (_) => AddProductDialog(onProductAdded: _refreshProducts),
+        ),
+        child: Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+
+  Future<void> _shareProducts(List<Product> products) async {
+    try {
+      List<XFile> imageFiles = [];
+      StringBuffer shareTextBuffer = StringBuffer('Check out these products:\n\n');
+
+      for (int index = 0; index < products.length; index++) {
+        final product = products[index];
+
+        shareTextBuffer.write('Name: ${product.name}\nDescription: ${product.description}\nRate: \$${product.rate}\n\n');
+
+        if (product.image != null) {
+          Uint8List productImageBytes = base64Decode(product.image!);
+          final directory = await getTemporaryDirectory();
+          final filePath = '${directory.path}/product_$index.png';
+          final file = io.File(filePath);
+          await file.writeAsBytes(productImageBytes);
+
+          imageFiles.add(XFile(filePath));
+        }
+      }
+
+      if (imageFiles.isNotEmpty) {
+        await Share.shareXFiles(imageFiles, text: shareTextBuffer.toString(), subject: 'Products Sharing');
+      } else {
+        await Share.share(shareTextBuffer.toString(), subject: 'Products Sharing');
+      }
+    } catch (e) {
+      print("Error sharing products: $e");
+    }
+  }
+
+
+
+  ----------------------------------------XXXXXXXXXXXXXXXXXXXXXX-------------------------------------
+  import 'package:flutter/material.dart';
+  import 'package:flutter_riverpod/flutter_riverpod.dart';
+  import 'package:http/http.dart';
+  import 'package:shared_preferences/shared_preferences.dart';
+  import 'package:testproject/main.dart';
+  import 'package:testproject/services/counter.riverPod.dart';
+  import 'package:testproject/widgets/Login.page.dart';
+  import 'models/product.dart';
+  import 'services/api_service.dart';
+  import 'widgets/product_card.dart';
+  import 'widgets/add_product_dialog.dart';
+  import 'widgets/search_bar.dart';
+  import 'package:share_plus/share_plus.dart';
+  import 'dart:convert';
+  import 'dart:typed_data';
+  import 'package:path_provider/path_provider.dart';
+  import 'dart:io' as io;
+  import 'dart:async';
+
+  // import 'package:testproject/widgets/add_product_dialog.dart' as addDialog;
+  // import 'package:testproject/widgets/product_card.dart' as card;
+
+  // --- Apply ReiverPod ---
+  final counterProvider = StateProvider<int>((ref) => 0);
+
+  class HomePage extends ConsumerStatefulWidget {
+    const HomePage({Key? key}) : super(key: key);
+
+    @override
+    _HomePageState createState() => _HomePageState();
+  }
+
+  class _HomePageState extends ConsumerState<HomePage>{
+    List<Product> products = [];
+    List<Product> filteredProducts = [];
+    String searchQuery = "";
+    bool isSelectAll = false;
+    bool productSelection = false;
+
+    // --- Loading ---
+    bool isLoading = true;
+
+    // --- set the timer for API Called ---
+    Timer? _debounce;
+
+    bool getData = false;
+
+    late SharedPreferences pref;
+
+    @override
+    void initState() {
+      super.initState();
+      _fetchProducts();
+      _initializePrefs();
+    }
+
+    Future<void> _initializePrefs() async {
+      pref = await SharedPreferences.getInstance();
+      setState(() {
+        getData = pref.getBool("longPress") ?? false;
+      });
+      print("Data state:- $getData");
+    }
+
+    // void incrementCounter(WidgetRef ref) {
+    //   final counterNotifier = ref.read(counterProvider.notifier);
+    //   counterNotifier.state++;
+    // }
+
+    void _refreshProducts() {
+      _fetchProducts();
+    }
+
+    Future<void> _fetchProducts() async {
+      setState(() {
+        isLoading = true;
+      });
+      try {
+        final fetchedProducts = await ApiService.fetchProducts();
+        if (!mounted) return;
+
+        setState(() {
+          products = fetchedProducts;
+          filteredProducts = List.from(fetchedProducts);
+          isLoading = false;
+        });
+      } catch (error) {
+        setState(() {
+          isLoading = false;
+        });
+        print("Error fetching products: $error");
+      }
+    }
+
+    void _toggleSelectAll() {
+      setState(() {
+        isSelectAll = !isSelectAll;
+      });
+    }
+
+    void _onSearchChanged(String query) async {
+      setState(() {
+        searchQuery = query;
+      });
+
+      if (_debounce?.isActive ?? false) {
+        _debounce?.cancel();
+      }
+
+      _debounce = Timer(const Duration(milliseconds: 500), () async {
+        if (query.isEmpty) {
+          setState(() {
+            filteredProducts = [];
+          });
+        } else {
+          try {
+            setState(() {
+              isLoading = true;
+            });
+            List<Product> results = await ApiService.onSearchChanged(query);
+
+            setState(() {
+              filteredProducts = results;
+              isLoading = false;
+            });
+          } catch (e) {
+            setState(() {
+              filteredProducts = [];
+              isLoading = false;
+            });
+            print("Search error: $e");
+          }
+        }
+      });
+    }
+
+    Future<void> _shareProduct(List<Product> products) async {
+      try {
+        final directory = await getTemporaryDirectory();
+
+        List<XFile> imageFiles = [];
+
+        List<String> messageTexts = [];
+
+        for (int index = 0; index < products.length; index++) {
+          final product = products[index];
+
+          XFile? imageFile;
+          if (product.image != null) {
+            Uint8List productImageBytes = base64Decode(product.image!);
+            final filePath = '${directory.path}/product_$index.png';
+            final file = io.File(filePath);
+            await file.writeAsBytes(productImageBytes);
+            imageFile = XFile(filePath);
+            imageFiles.add(imageFile);
+          }
+        }
+
+        if (imageFiles.isNotEmpty) {
+          await Share.shareXFiles(
+            imageFiles,
+            text: messageTexts.join('\n---\n\n'),
+            subject: 'Check out these products!',
+          );
+        } else {
+          await Share.share(
+            messageTexts.join('\n---\n\n'),
+            subject: 'Check out these products!',
+          );
+        }
+      } catch (e) {
+        print("Error sharing products: $e");
+      }
+    }
+
+    @override
+    Widget build(BuildContext context) {
+      final counterData = ref.watch(counterProvider);
+
+      // Print the counter value whenever it's updated
+      print("Counter Data inside HomePage: ${counterData}");
+      print("Data state:- $getData");
+
+      if (isLoading) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Product List'),
+            leading: IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () async {
+                await setLoginStatus(false);
+
+                Navigator.pushReplacement(context,
+                    MaterialPageRoute(builder: (context) => LoginPage()));
+              }, // Call your logout function
+              tooltip: 'Logout',
+            ),
+            actions: [
+              IconButton(
+                icon: Icon(isSelectAll
+                    ? Icons.check_box
+                    : Icons.check_box_outline_blank),
+                onPressed: _toggleSelectAll,
+                tooltip: isSelectAll ? 'Deselect All' : 'Select All',
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: _fetchProducts,
+              ),
+            ],
+          ),
+          body: Column(
+            children: [
+              CustomSearchBar(onSearchChanged: _onSearchChanged),
+              const Center(
+                child: CircularProgressIndicator(),
+              ),
+            ],
+          ),
+        );
+      }
+      return Scaffold(
+          appBar: AppBar(
+            title: const Text('Product List'),
+            leading: IconButton(
+              icon: const Icon(Icons.logout), // Logout icon
+              onPressed: () async {
+                await setLoginStatus(false);
+
+                Navigator.pushReplacement(context,
+                    MaterialPageRoute(builder: (context) => LoginPage()));
+              },
+              tooltip: 'Logout',
+            ),
+            actions: [
+              IconButton(
+                icon: Icon(isSelectAll
+                    ? Icons.check_box
+                    : Icons.check_box_outline_blank),
+                onPressed: _toggleSelectAll,
+                tooltip: isSelectAll ? 'Deselect All' : 'Select All',
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: _fetchProducts,
+              ),
+            ],
+          ),
+          body: Column(
+            children: [
+              CustomSearchBar(onSearchChanged: _onSearchChanged),
+              Expanded(
+                child: filteredProducts.isEmpty
+                    ? const Center(
+                        child: Text(
+                          "No Products Found",
+                          style: TextStyle(fontSize: 18, color: Colors.grey),
+                        ),
+                      )
+                    : GridView.builder(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 8.0,
+                          crossAxisSpacing: 8.0,
+                          childAspectRatio: 3 / 4,
+                        ),
+                        itemCount: filteredProducts.length,
+                        itemBuilder: (context, index) {
+                          return ProductCard(
+                            product: filteredProducts[index],
+                            index: index,
+                            isGlobalSelected: isSelectAll,
+                            onTap: () {},
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+
+          floatingActionButton: FloatingActionButton(
+            onPressed: (getData == true)
+                ? () => _shareProduct(filteredProducts)
+                : () => showDialog(
+                      context: context,
+                      builder: (_) =>
+                          AddProductDialog(onProductAdded: _refreshProducts),
+                    ),
+            child: Icon((getData == true) ? Icons.share : Icons.add),
+          ));
+    }
+  }

@@ -1,0 +1,2 @@
+C:/shubham/newprg/android/app/.cxx/RelWithDebInfo/t1y62h1t/x86/CMakeFiles/edit_cache.dir
+C:/shubham/newprg/android/app/.cxx/RelWithDebInfo/t1y62h1t/x86/CMakeFiles/rebuild_cache.dir
