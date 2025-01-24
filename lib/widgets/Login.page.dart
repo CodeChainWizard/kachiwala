@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:newprg/home_page.dart';
 import 'package:newprg/main.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 
 class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
   @override
   _LoginPageState createState() => _LoginPageState();
 }
@@ -13,30 +12,33 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  bool _isPasswordVisible = false; // For toggling password visibility
 
   void onLoginSuccess(BuildContext context) async {
-    // Assuming login is successful, update login status
     await setLoginStatus(true);
 
-    // Navigate to HomePage
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => HomePage()),
     );
   }
+
   void _navigateToHomePage() {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
-    if (email == 'narayan' && password == 'kachiwala') {
-     onLoginSuccess(context);
-    }else if(email.isEmpty || password.isEmpty){
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please Enter the Email and Password Both')),
+        SnackBar(content: Text('Please Enter Both Username and Password')),
       );
+      return;
+    }
+
+    if (email == 'narayan' && password == 'kachiwala') {
+      onLoginSuccess(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invalid email or password')),
+        SnackBar(content: Text('Invalid Credentials')),
       );
     }
   }
@@ -52,27 +54,14 @@ class _LoginPageState extends State<LoginPage> {
             children: [
               // Logo
               Center(
-                child: Container(
+                child: SizedBox(
                   height: 100,
                   width: 100,
-                  child: Image.asset("assets/images/kachiwala.png", fit: BoxFit.cover),
-                  // child: SvgPicture.asset(
-                  //   'assets/images/kachiwala.svg',
-                  //   fit: BoxFit.cover,
-                  // ),
+                  child: Image.asset(
+                    "assets/images/kachiwala.png",
+                    fit: BoxFit.cover,
+                  ),
                 ),
-                // child: Container(
-                //   height: 60,
-                //   width: 60,
-                //   decoration: BoxDecoration(
-                //     shape: BoxShape.circle,
-                //     // color: Colors.black,
-                //     image: DecorationImage(
-                //       image: AssetImage('assets/images/kachiwala.svg'),
-                //       fit: BoxFit.cover,
-                //     ),
-                //   ),
-                // ),
               ),
               SizedBox(height: 24),
               // Title
@@ -93,10 +82,10 @@ class _LoginPageState extends State<LoginPage> {
                     borderRadius: BorderRadius.circular(8.0),
                   ),
                 ),
-                keyboardType: TextInputType.emailAddress,
+                keyboardType: TextInputType.text,
               ),
               SizedBox(height: 16),
-              // Password Input Field
+              // Password Input Field with Toggle Visibility
               TextField(
                 controller: passwordController,
                 decoration: InputDecoration(
@@ -104,8 +93,20 @@ class _LoginPageState extends State<LoginPage> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8.0),
                   ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isPasswordVisible = !_isPasswordVisible;
+                      });
+                    },
+                  ),
                 ),
-                obscureText: true,
+                obscureText: !_isPasswordVisible,
               ),
               SizedBox(height: 16),
               // Continue Button

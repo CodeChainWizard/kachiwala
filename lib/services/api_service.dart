@@ -12,16 +12,15 @@ class ApiService {
 
 
   // ?take&skip
-  static Future<List<Product>> fetchProducts({int skip = 0, int take = 6}) async {
+  static Future<List<Product>> fetchProducts() async {
     try {
+      // Modify the URL to fetch all products without pagination
+      final url = Uri.parse('$_baseUrl_GET');
 
-      final url = Uri.parse('$_baseUrl_GET?skip=$skip&take=$take');
-
-      print("Fetching products from URL: $url");
+      print("Fetching all products from URL: $url");
 
       final response = await http.get(url);
       if (response.statusCode == 200) {
-
         List<dynamic> data = jsonDecode(response.body);
 
         if (data.isEmpty) {
@@ -35,9 +34,36 @@ class ApiService {
       }
     } catch (e) {
       print('Error fetching products: $e');
-      throw e;  // Propagate error so calling code can handle it.
+      throw e; // Propagate error so calling code can handle it.
     }
   }
+
+  // static Future<List<Product>> fetchProducts({int skip = 0, int take = 6}) async {
+  //   try {
+  //
+  //     final url = Uri.parse('$_baseUrl_GET?skip=$skip&take=$take');
+  //
+  //     print("Fetching products from URL: $url");
+  //
+  //     final response = await http.get(url);
+  //     if (response.statusCode == 200) {
+  //
+  //       List<dynamic> data = jsonDecode(response.body);
+  //
+  //       if (data.isEmpty) {
+  //         print("No data received from API");
+  //       }
+  //
+  //       return data.map((json) => Product.fromJson(json)).toList();
+  //     } else {
+  //       print("Error: ${response.statusCode}");
+  //       throw Exception('Failed to load products');
+  //     }
+  //   } catch (e) {
+  //     print('Error fetching products: $e');
+  //     throw e;  // Propagate error so calling code can handle it.
+  //   }
+  // }
 
   static Future<Response> addProduct(FormData formData) async {
     Dio dio = Dio();
@@ -122,16 +148,30 @@ class ApiService {
   static Future<List<Product>> onSearchChanged(String query) async {
     final String searchUrl = '$_baseUrl_GET?search=$query';
 
+    print("Search URL: $searchUrl");
+
     try {
+      print("Fetching products for query: $query");
       final response = await http.get(Uri.parse(searchUrl));
 
+      print("Search Fetching Product: ${response.statusCode}");
+
       if (response.statusCode == 200) {
+        print("API Response: ${response.body}");
         List<dynamic> data = jsonDecode(response.body);
+
+        if (data.isEmpty) {
+          print("No products found for query: $query");
+          return [];
+        }
+
         return data.map((json) => Product.fromJson(json)).toList();
       } else {
+        print("Failed to fetch products. Status Code: ${response.statusCode}"); // Debug statement
         throw Exception('Failed to fetch products for search query');
       }
     } catch (e) {
+      print("Error during search: $e"); // Debug statement
       throw Exception('Error during search: $e');
     }
   }

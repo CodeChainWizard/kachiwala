@@ -21,6 +21,7 @@ class ProductCard extends ConsumerStatefulWidget {
   final VoidCallback onTap;
   final Function(bool) updateCounter;
   final bool isSelectAll;
+  final List<String> selectedProductIds;
 
   ProductCard({
     required this.product,
@@ -29,6 +30,7 @@ class ProductCard extends ConsumerStatefulWidget {
     required this.onTap,
     required this.updateCounter,
     required this.isSelectAll,
+    required this.selectedProductIds
   });
 
   @override
@@ -81,16 +83,15 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     return path;
   }
 
-  // String _resolveImageUrl(String path) {
-  //   const String baseUrl = 'Shubham URL for Access Images URL';
-  //   return baseUrl + path.replaceAll("\\", "/");
-  // }
 
   @override
   Widget build(BuildContext context) {
     // print("Counter value in riverpods: $counterValue");
 
     print("isSelectAll Value in ProductCard Page: ${widget.isSelectAll}");
+    print("isSelectAll Value in ProductCard Ids: ${widget.selectedProductIds}");
+
+    final screenWidth = MediaQuery.of(context).size.width;
 
     final resolvedImagePath =
         widget.product.imagePaths != null &&
@@ -145,8 +146,8 @@ class _ProductCardState extends ConsumerState<ProductCard> {
       },
 
       child: Card(
-        margin: EdgeInsets.all(8.0),
-        color: isSelected ? Colors.blueAccent.withOpacity(0.1) : null,
+        margin: EdgeInsets.all(2.0),
+        color: widget.selectedProductIds.contains(widget.product.id) && isSelected ? Colors.blueAccent.withOpacity(0.1) : null,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -158,26 +159,29 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                         borderRadius: BorderRadius.vertical(
                           top: Radius.circular(8.0),
                         ),
-                        child: Image.network(
-                          // _resolveImageUrl(widget.product.imagePaths![0]),
-                          // "http://192.168.1.2:5000/uploads/folder1/1734342621219-573985215.jpg",
-                          resolvedImagePath!,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Icon(
-                              Icons.broken_image,
-                              size: 100,
-                              color: Colors.grey,
-                            );
-                          },
+                        child: Container(
+                          width: MediaQuery.of(context).size.width * 0.5,
+                          child: Image.network(
+                            // _resolveImageUrl(widget.product.imagePaths![0]),
+                            // "http://192.168.1.2:5000/uploads/folder1/1734342621219-573985215.jpg",
+                            resolvedImagePath!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Icon(
+                                Icons.broken_image,
+                                size: 100,
+                                color: Colors.grey,
+                              );
+                            },
+                          ),
                         ),
                       )
                       : Icon(Icons.image, size: 100, color: Colors.grey),
             ),
 
             Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.all(4.0),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   bool isSmallScreen = constraints.maxWidth < 600;
@@ -248,7 +252,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                                   icon: const Icon(Icons.share),
                                   onPressed:
                                       () => _shareProducts([widget.product]),
-                                  iconSize: isSmallScreen ? 20 : 24,
+                                  iconSize: isSmallScreen ? 18 : 22,
                                 ),
                               ],
                             ),
@@ -437,10 +441,9 @@ class _ProductCardState extends ConsumerState<ProductCard> {
       for (int index = 0; index < products.length; index++) {
         final product = products[index];
 
-        print("Image Product: ${product}");
 
         shareTextBuffer.write(
-          'Design No: ${product.designNo}\nPrice: ₹${product.rate}\nUnit: ${product.size}\n\n',
+          'Design No: ${product.designNo}\nPrice: ₹${product.rate}\nUnit: ${product.size}\n Meter: ${product.meter}\n\n',
         );
 
         if (product.imagePaths != null) {

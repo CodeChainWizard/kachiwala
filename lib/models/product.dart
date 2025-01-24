@@ -9,6 +9,7 @@ class Product {
   final String color;
   final String packing;
   final int rate;
+  final String meter;
   final List<String>? imagePaths; // Updated to handle multiple images
 
   Product({
@@ -22,12 +23,13 @@ class Product {
     required this.color,
     required this.packing,
     required this.rate,
+    required this.meter,
     this.imagePaths,
   });
 
   @override
   String toString() {
-    return 'Product{id: $id, type: $type, code: $code, name: $name, description: $description, size: $size, color: $color, packing: $packing, rate: $rate, imagePaths: $imagePaths}';
+    return 'Product{id: $id, type: $type, code: $code, name: $name, description: $description, size: $size, color: $color, packing: $packing, rate: $rate, Meter: $meter, imagePaths: $imagePaths}';
   }
 
 
@@ -43,6 +45,7 @@ class Product {
       color: json['color'].toString(),
       packing: json['packing'].toString(),
       rate: int.tryParse(json['rate'].toString()) ?? 0,
+      meter: json['meter'].toString(),
       imagePaths: (json['imagePaths'] as List<dynamic>?)
           ?.map((e) => e.toString())
           .toList(),
@@ -60,6 +63,7 @@ class Product {
     String? color,
     String? packing,
     int? rate,
+    String? meter,
     List<String>? imagePaths,
   }) {
     return Product(
@@ -73,6 +77,7 @@ class Product {
       color: color ?? this.color,
       packing: packing ?? this.packing,
       rate: rate ?? this.rate,
+      meter: meter ?? this.meter,
       imagePaths: imagePaths ?? this.imagePaths,
     );
   }

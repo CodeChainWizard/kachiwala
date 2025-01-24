@@ -192,11 +192,13 @@ class ShareProduct {
       final StringBuffer shareTextBuffer = StringBuffer();
       final List<XFile> imageFiles = [];
 
+      print("Meter Data: ${product.meter}");
       shareTextBuffer.write(
-        'Design No: ${product.designNo}\nPrice: ₹${product.rate}\nUnit: ${product.size}\n\n',
+        'Design No: ${product.designNo}\nPrice: ₹${product.rate}\nUnit: ${product.size}\nMeter: ${product.meter}',
       );
 
-      // Handle multiple images for a selected product
+      print("DATA: ${product}");
+
       if (product.imagePaths != null && product.imagePaths!.isNotEmpty) {
         for (int i = 0; i < product.imagePaths!.length; i++) {
           final imagePath = product.imagePaths![i];
