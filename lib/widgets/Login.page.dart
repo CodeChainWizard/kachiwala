@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../home_page.dart';
 import '../main.dart';
@@ -27,8 +28,11 @@ class _LoginPageState extends State<LoginPage> {
     loadAndCompressImage();
   }
 
-  void onLoginSuccess(BuildContext context) async {
+  void onLoginSuccess(BuildContext context, String email, String password) async {
     await setLoginStatus(true);
+    SharedPreferences sp = await SharedPreferences.getInstance();
+    await sp.setString("email", email);
+    await sp.setString("password", password);
 
     Navigator.pushReplacement(
       context,
@@ -48,7 +52,7 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     if (email == 'narayan' && password == 'kachiwala') {
-      onLoginSuccess(context);
+      onLoginSuccess(context, email, password);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Invalid Credentials')),
@@ -125,10 +129,11 @@ class _LoginPageState extends State<LoginPage> {
                 child:SizedBox(
                   height: 100,
                   width: 100,
-                  child: compressedImage != null
-                      ? Image.file(compressedImage!, fit: BoxFit.cover,)
-                      // ? Image.asset("assets/images/kachiwala.png")
-                      : null,
+                  child: Image.asset("assets/images/kachiwala.png"),
+                  // child: compressedImage != null
+                  //     ? Image.file(compressedImage!, fit: BoxFit.cover,)
+                  //     // ? Image.asset("assets/images/kachiwala.png")
+                  //     : null,
                 ),
               ),
               const SizedBox(height: 24),

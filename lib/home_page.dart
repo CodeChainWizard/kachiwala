@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:newprg/widgets/AddPersonPage.dart';
 import 'package:newprg/widgets/CreateNewProduct.dart';
 import 'package:newprg/widgets/shareProduct.dart';
 import 'package:path_provider/path_provider.dart';
@@ -431,7 +432,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                   return AlertDialog(
                     title: Text(
                       'Confirm Logout',
-                      style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 20.0,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     content: Text(
                       'Are you sure you want to logout?',
@@ -546,7 +550,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                 return AlertDialog(
                   title: Text(
                     'Confirm Logout',
-                    style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 20.0,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   content: Text(
                     'Are you sure you want to logout?',
@@ -604,10 +611,55 @@ class _HomePageState extends ConsumerState<HomePage> {
                 child: Text(isAllSelected ? 'Deselect All' : 'Select All'),
               )
               : SizedBox(),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _refreshProducts,
+
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (String choice) async {
+              if (choice == 'Refresh') {
+                _refreshProducts();
+              } else if (choice == 'Add Person') {
+                SharedPreferences sp = await SharedPreferences.getInstance();
+                String? storedEmail = sp.getString("email");
+                String? storedPassword = sp.getString("password");
+
+                if (storedEmail == "narayan" && storedPassword == "kachiwala") {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => AddPersonPage()),
+                  );
+                  if (result == true) {
+                    _refreshProducts();
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Access Denied: Unauthorized User")),
+                  );
+                }
+              }
+            },
+            itemBuilder:
+                (BuildContext context) => <PopupMenuEntry<String>>[
+                  const PopupMenuItem<String>(
+                    value: 'Refresh',
+                    child: ListTile(
+                      leading: Icon(Icons.refresh, color: Colors.blue),
+                      title: Text('Refresh'),
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'Add Person',
+                    child: ListTile(
+                      leading: Icon(Icons.person_add, color: Colors.green),
+                      title: Text('Add New Person'),
+                    ),
+                  ),
+                ],
           ),
+
+          // IconButton(
+          //   icon: const Icon(Icons.refresh),
+          //   onPressed: _refreshProducts,
+          // ),
         ],
       ),
 
@@ -729,70 +781,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
       ),
 
-      // body: Padding(
-      //   padding: const EdgeInsets.all(5.0),
-      //   child: Column(
-      //     children: [
-      //       CustomSearchBar(
-      //         onSearchChanged: _onSearchChanged,
-      //         refreshProducts: () {
-      //           setState(() {
-      //             filteredProducts = List.from(products);
-      //           });
-      //         },
-      //         searchController: _searchController,
-      //       ),
-      //       Expanded(
-      //         child: filteredProducts.isEmpty
-      //             ? const Center(
-      //           child: Text(
-      //             "No Products Found",
-      //             style: TextStyle(
-      //               fontSize: 22,
-      //               color: Colors.grey,
-      //               fontWeight: FontWeight.bold,
-      //             ),
-      //           ),
-      //         )
-      //             : GridView.builder(
-      //           controller: _scrollController,
-      //           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-      //             crossAxisCount: 2,
-      //             mainAxisSpacing: 8.0,
-      //             crossAxisSpacing: 8.0,
-      //             childAspectRatio: 3 / 4,
-      //           ),
-      //           itemCount: filteredProducts.length + (isLoading ? 1 : 0),
-      //           itemBuilder: (context, index) {
-      //             if (index == filteredProducts.length && isLoading) {
-      //               return const Center(
-      //                 child: CircularProgressIndicator(),
-      //               );
-      //             }
-      //             final product = filteredProducts[index];
-      //             return ProductCard(
-      //               product: product,
-      //               index: index,
-      //               isGlobalSelected: isSelectAll,
-      //               isSelectAll: isSelectAll,
-      //               onTap: () {
-      //                 setState(() {
-      //                   if (!selectedProductIds.contains(product.id)) {
-      //                     selectedProductIds.add(product.id);
-      //                   } else {
-      //                     selectedProductIds.remove(product.id);
-      //                   }
-      //                 });
-      //               },
-      //               updateCounter: updateCounter,
-      //               selectedProductIds: selectedProductIds,
-      //             );
-      //           },
-      //         ),
-      //       ),
-      //     ],
-      //   ),
-      // ),
       floatingActionButton:
           counterValue > 0
               ? SpeedDial(
