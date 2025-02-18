@@ -50,6 +50,17 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     _compressAndLoadImage();
   }
 
+  void _handleSelectAll() {
+    setState(() {
+      if (widget.isSelectAll) {
+        isSelected = !isSelected;
+        widget.updateCounter(isSelected);
+      }
+    });
+  }
+
+
+
   Future<void> _compressAndLoadImage() async {
     if (widget.product.imagePaths == null || widget.product.imagePaths!.isEmpty) {
       print("No image paths found.");
@@ -113,9 +124,8 @@ class _ProductCardState extends ConsumerState<ProductCard> {
   }
 
 
-
   bool sharedFlag = false;
-  /// Shares the given list of products.
+
   Future<void> _shareProducts(List<Product> products) async {
     if (sharedFlag) return;
 
@@ -157,44 +167,6 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     }
   }
 
-  /// Shares the given list of products.
-  // Future<void> _shareProducts(List<Product> products) async {
-  //   try {
-  //     final List<XFile> imageFiles = [];
-  //     final shareText = StringBuffer('Check out these products:\n\n');
-  //
-  //     for (int i = 0; i < products.length; i++) {
-  //       final product = products[i];
-  //       shareText.write(
-  //         'Design No: ${product.designNo}\n'
-  //         'Price: ₹${product.rate}\n'
-  //         'Unit: ${product.size}\n'
-  //         'Meter: ${product.meter}\n\n',
-  //       );
-  //
-  //       if (product.imagePaths != null && product.imagePaths!.isNotEmpty) {
-  //         final imagePath = product.imagePaths![0];
-  //         final imageBytes =
-  //             imagePath.startsWith('http')
-  //                 ? (await http.get(Uri.parse(imagePath))).bodyBytes
-  //                 : base64Decode(imagePath);
-  //
-  //         final tempDir = await getTemporaryDirectory();
-  //         final file = io.File('${tempDir.path}/product_$i.png');
-  //         await file.writeAsBytes(imageBytes);
-  //         imageFiles.add(XFile(file.path));
-  //       }
-  //     }
-  //
-  //     if (imageFiles.isNotEmpty) {
-  //       await Share.shareXFiles(imageFiles, text: shareText.toString());
-  //     } else {
-  //       await Share.share(shareText.toString());
-  //     }
-  //   } catch (e) {
-  //     print('Error sharing products: $e');
-  //   }
-  // }
 
   String _resolveImageUrl(String path) {
     // return path.replaceAll("\\", "/");
@@ -232,6 +204,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
       },
 
       onTap: () async {
+        _handleSelectAll();
         SharedPreferences prefs = await SharedPreferences.getInstance();
         bool isLongPressActive = prefs.getBool("longPress") ?? false;
 
@@ -319,28 +292,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            SizedBox(height: 15.0),
-                            RichText(
-                              text: TextSpan(
-                                children: [
-                                  const TextSpan(
-                                    text: 'Desc : ',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-                                  TextSpan(
-                                    text: widget.product.description,
-                                    style: TextStyle(
-                                      fontSize: isSmallScreen ? 14 : 16,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+
                             SizedBox(height: 15.0),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -366,36 +318,6 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                                     ],
                                   ),
                                 ),
-                                // IconButton(
-                                //   icon: const Icon(Icons.share),
-                                //   onPressed: () async {
-                                //     try {
-                                //       // Get the selected products
-                                //       final selectedProducts = widget.selectedProductIds.isNotEmpty
-                                //           ? widget.selectedProductIds.map((id) => widget.product).toList()
-                                //           : [widget.product];
-                                //
-                                //       // Iterate through the selected products
-                                //       for (var product in selectedProducts) {
-                                //         if (product.imagePaths != null && product.imagePaths!.isNotEmpty) {
-                                //           if (product.imagePaths!.length == 1) {
-                                //             // Share normally if there's only one image
-                                //             await _shareProducts([product]);
-                                //           } else {
-                                //             // Share all images if there are multiple, ensuring details are added only once
-                                //             await _shareProductsWithMultipleImages(product);
-                                //           }
-                                //         } else {
-                                //           print("No images found for product: ${product.id}");
-                                //         }
-                                //       }
-                                //     } catch (e) {
-                                //       print("Error sharing products: $e");
-                                //     }
-                                //   },
-                                //   iconSize: isSmallScreen ? 18 : 22,
-                                // ),
-
                               ],
                             ),
 
@@ -469,166 +391,6 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                 },
               ),
             ),
-
-            // Expanded(
-            //   child: widget.product.image != null
-            //       ? ClipRRect(
-            //     borderRadius:
-            //     BorderRadius.vertical(top: Radius.circular(8.0)),
-            //     child: Image.memory(
-            //       base64Decode(widget.product.image!),
-            //       fit: BoxFit.cover,
-            //       width: double.infinity,
-            //     ),
-            //   )
-            //       : Icon(
-            //     Icons.image,
-            //     size: 100,
-            //     color: Colors.grey,
-            //   ),
-            // ),
-            // Padding(
-            //   padding: const EdgeInsets.all(8.0),
-            //   child: Row(
-            //     crossAxisAlignment: CrossAxisAlignment.start,
-            //     children: [
-            //       Expanded(
-            //         child: Column(
-            //           crossAxisAlignment: CrossAxisAlignment.start,
-            //           children: [
-            //             Text(
-            //               'Name : ${widget.product.name}',
-            //               style: const TextStyle(
-            //                 fontSize: 16,
-            //                 fontWeight: FontWeight.bold,
-            //               ),
-            //               maxLines: 1,
-            //               overflow: TextOverflow.ellipsis,
-            //             ),
-            //             SizedBox(height: 4.0),
-            //             RichText(
-            //               text: TextSpan(
-            //                 children: [
-            //                   const TextSpan(
-            //                     text: 'Desc : ',
-            //                     style: TextStyle(
-            //                       fontSize: 16,
-            //                       fontWeight: FontWeight.bold,
-            //                       color: Colors.black,
-            //                     ),
-            //                   ),
-            //                   TextSpan(
-            //                     text: widget.product.description,
-            //                     style: TextStyle(
-            //                       fontSize: 14,
-            //                       color: Colors.grey[600],
-            //                     ),
-            //                   ),
-            //                 ],
-            //               ),
-            //             ),
-            //             SizedBox(height: 4.0),
-            //             Row(
-            //               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            //               children: [
-            //                 RichText(
-            //                   text: TextSpan(
-            //                     children: [
-            //                       const TextSpan(
-            //                         text: 'Price(₹) : ',
-            //                         style: TextStyle(
-            //                           fontSize: 16,
-            //                           fontWeight: FontWeight.bold,
-            //                           color: Colors.black,
-            //                         ),
-            //                       ),
-            //                       TextSpan(
-            //                         text: '${widget.product.rate} Rs',
-            //                         style: TextStyle(
-            //                           fontSize: 14,
-            //                           color: Colors.grey[600],
-            //                         ),
-            //                       ),
-            //                     ],
-            //                   ),
-            //                 ),
-            //                 IconButton(
-            //                   icon: const Icon(Icons.share),
-            //                   onPressed: () => _shareProducts([widget.product]),
-            //                 ),
-            //               ],
-            //             ),
-            //           ],
-            //         ),
-            //       ),
-            //     ],
-            //   ),
-            // ),
-
-            // Padding(
-            //   padding: EdgeInsets.all(8.0),
-            //   child: Row(
-            //     crossAxisAlignment: CrossAxisAlignment.start,
-            //     children: [
-            //       Expanded(
-            //         child: Column(
-            //           crossAxisAlignment: CrossAxisAlignment.start,
-            //           children: [
-            //             Text(
-            //               'Name : ${widget.product.name}',
-            //               style: const TextStyle(
-            //                   fontSize: 16, fontWeight: FontWeight.bold),
-            //               maxLines: 1,
-            //               overflow: TextOverflow.ellipsis,
-            //             ),
-            //             SizedBox(height: 4.0),
-            //             RichText(
-            //               text: TextSpan(
-            //                 children: [
-            //                   const TextSpan(
-            //                     text: 'Desc : ',
-            //                     style: TextStyle(
-            //                         fontSize: 16,
-            //                         fontWeight: FontWeight.bold,
-            //                         color: Colors.black),
-            //                   ),
-            //                   TextSpan(
-            //                     text: widget.product.description,
-            //                     style: TextStyle(
-            //                         fontSize: 14, color: Colors.grey[600]),
-            //                   ),
-            //                 ],
-            //               ),
-            //             ),
-            //             SizedBox(height: 4.0),
-            //             RichText(
-            //               text: TextSpan(
-            //                 children: [
-            //                   const TextSpan(
-            //                     text: 'Price(₹) : ',
-            //                     style: TextStyle(
-            //                         fontSize: 16,
-            //                         fontWeight: FontWeight.bold,
-            //                         color: Colors.black),
-            //                   ),
-            //                   TextSpan(
-            //                     text: '${widget.product.rate} Rs',
-            //                     style: TextStyle(
-            //                         fontSize: 14, color: Colors.grey[600]),
-            //                   ),
-            //                 ],
-            //               ),
-            //             ),
-            //           ],
-            //         ),
-            //       ),
-            //       IconButton(
-            //         icon: Icon(Icons.share),
-            //         onPressed: () => _shareProducts([widget.product]),
-            //       ),
-            //     ],
-            //   ),
-            // ),
           ],
         ),
       ),

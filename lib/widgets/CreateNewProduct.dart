@@ -9,6 +9,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'CropScreen.dart';
 
 class AddProductPage extends StatefulWidget {
   final VoidCallback onProductAdded;
@@ -32,6 +33,7 @@ class _AddProductPageState extends State<AddProductPage> {
   // final rateController = TextEditingController();
   // final meterController = TextEditingController();
 
+  // --- Text-Filed ----
   final Name = TextEditingController();
   final DesignNo = TextEditingController();
   final Meter = TextEditingController();
@@ -41,10 +43,21 @@ class _AddProductPageState extends State<AddProductPage> {
   final Paking = TextEditingController();
   final Color = TextEditingController();
 
+  // --- Focus Node ----
+  final FocusNode nameFocusNode = FocusNode();
+  final FocusNode designNoFocusNode = FocusNode();
+  final FocusNode meterFocusNode = FocusNode();
+  final FocusNode sizeFocusNode = FocusNode();
+  final FocusNode priceFocusNode = FocusNode();
+  final FocusNode typeFocusNode = FocusNode();
+  final FocusNode colorFocusNode = FocusNode();
+  final FocusNode packingFocusNode = FocusNode();
+
   bool isLoading = false;
   bool isImagePicked = false;
   List<Uint8List?> images = [];
   Uint8List? compressedImage;
+
 
   Future<void> _pickImage() async {
     try {
@@ -94,6 +107,7 @@ class _AddProductPageState extends State<AddProductPage> {
   }
 
   Future<void> _addProduct() async {
+
     if (Name.text.isEmpty ||
         DesignNo.text.isEmpty ||
         Meter.text.isEmpty ||
@@ -102,12 +116,9 @@ class _AddProductPageState extends State<AddProductPage> {
         Type.text.isEmpty ||
         Paking.text.isEmpty ||
         Color.text.isEmpty ||
-        // packingController.text.isEmpty ||
-        // rateController.text.isEmpty ||
-        // meterController.text.isEmpty ||
         images.isEmpty) {
       _showValidationDialog(
-        'Please fill all fields and select at least one image.',
+        'Please fill in all fields and select at least one image.',
       );
       return;
     }
@@ -115,29 +126,18 @@ class _AddProductPageState extends State<AddProductPage> {
     setState(() => isLoading = true);
 
     try {
-      List<MultipartFile> multipartImages =
-          images.map((image) {
-            return MultipartFile.fromBytes(image!, filename: 'image.jpg');
-          }).toList();
+      List<MultipartFile> multipartImages = images.map((image) {
+        return MultipartFile.fromBytes(image!, filename: 'image.jpg');
+      }).toList();
 
       FormData formData = FormData.fromMap({
-        // "type": typeController.text,
-        // "code": codeController.text,
-        // "designNo": designController.text,
-        // "name": nameController.text,
-        // "description": descriptionController.text,
-        // "size": sizeController.text,
-        // "color": colorController.text,
-        // "packing": packingController.text,
-        // "rate": rateController.text,
-        // "meter": meterController.text,
         "name": Name.text,
         "designNo": DesignNo.text,
         "meter": Meter.text,
         "size": Size.text,
         "rate": Price.text,
         "type": Type.text,
-        "code": Color.text,
+        "color": Color.text,
         "packing": Paking.text,
         "images": multipartImages,
       });
@@ -149,27 +149,115 @@ class _AddProductPageState extends State<AddProductPage> {
         Navigator.pop(context, true);
       } else {
         _showValidationDialog(
-          'Failed to add product. Status: ${response.statusCode}',
+          'Unable to add product. Please check your information or try again later.',
         );
       }
     } catch (e) {
-      _showValidationDialog('An error occurred: $e');
+      _showValidationDialog(
+        'Something went wrong. Please check your input or try again later.',
+      );
     } finally {
       setState(() => isLoading = false);
     }
   }
+
+
+  // Future<void> _addProduct() async {
+  //   if (Name.text.isEmpty ||
+  //       DesignNo.text.isEmpty ||
+  //       Meter.text.isEmpty ||
+  //       Size.text.isEmpty ||
+  //       Price.text.isEmpty ||
+  //       Type.text.isEmpty ||
+  //       Paking.text.isEmpty ||
+  //       Color.text.isEmpty ||
+  //       // packingController.text.isEmpty ||
+  //       // rateController.text.isEmpty ||
+  //       // meterController.text.isEmpty ||
+  //       images.isEmpty) {
+  //     _showValidationDialog(
+  //       'Please fill all fields and select at least one image.',
+  //     );
+  //     return;
+  //   }
+  //
+  //   setState(() => isLoading = true);
+  //
+  //   try {
+  //     List<MultipartFile> multipartImages =
+  //         images.map((image) {
+  //           return MultipartFile.fromBytes(image!, filename: 'image.jpg');
+  //         }).toList();
+  //
+  //     FormData formData = FormData.fromMap({
+  //       // "type": typeController.text,
+  //       // "code": codeController.text,
+  //       // "designNo": designController.text,
+  //       // "name": nameController.text,
+  //       // "description": descriptionController.text,
+  //       // "size": sizeController.text,
+  //       // "color": colorController.text,
+  //       // "packing": packingController.text,
+  //       // "rate": rateController.text,
+  //       // "meter": meterController.text,
+  //       "name": Name.text,
+  //       "designNo": DesignNo.text,
+  //       "meter": Meter.text,
+  //       "size": Size.text,
+  //       "rate": Price.text,
+  //       "type": Type.text,
+  //       "code": Color.text,
+  //       "packing": Paking.text,
+  //       "images": multipartImages,
+  //     });
+  //
+  //     var response = await ApiService.addProduct(formData);
+  //
+  //     if (response.statusCode == 201) {
+  //       widget.onProductAdded();
+  //       Navigator.pop(context, true);
+  //     } else {
+  //       _showValidationDialog(
+  //         'Failed to add product. Status: ${response.statusCode}',
+  //       );
+  //     }
+  //   } catch (e) {
+  //     _showValidationDialog('An error occurred: $e');
+  //   } finally {
+  //     setState(() => isLoading = false);
+  //   }
+  // }
 
   void _showValidationDialog(String message) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Validation Error'),
-          content: Text(message),
+          title: const Text(
+            'Oops! Something Went Wrong',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: Colors.redAccent, // Adds a more inviting color
+            ),
+          ),
+          content: Text(
+            message,
+            style: const TextStyle(fontSize: 16), // Slightly larger text for better readability
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15), // Rounded corners for the dialog
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
+              child: const Text(
+                'Got it!',
+                style: TextStyle(
+                  color: Colors.blue, // Change button text color to blue for contrast
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         );
@@ -187,14 +275,14 @@ class _AddProductPageState extends State<AddProductPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildTextField(Name, "DesignNo *"),
-              _buildTextField(DesignNo, "DesignNo *"),
-              _buildTextField(Meter, "Meter *"),
-              _buildTextField(Size, "Size *"),
-              _buildTextField(Price, "Price *"),
-              _buildTextField(Type, "Type *"),
-              _buildTextField(Color, "Color *"),
-              _buildTextField(Paking, "Packing *"),
+              _buildTextField(Name, "Name *", focusNode: nameFocusNode),
+              _buildTextField(DesignNo, "DesignNo *", focusNode: designNoFocusNode),
+              _buildTextField(Meter, "Meter *", isNumeric: true, focusNode: meterFocusNode),
+              _buildTextField(Size, "Size *", focusNode: sizeFocusNode),
+              _buildTextField(Price, "Price *", isNumeric: true, focusNode: priceFocusNode),
+              _buildTextField(Type, "Type *", focusNode: typeFocusNode),
+              _buildTextField(Color, "Color *", focusNode: colorFocusNode),
+              _buildTextField(Paking, "Packing *",focusNode: packingFocusNode),
               // _buildTextField(packingController, "Packing *"),
               // _buildTextField(rateController, "Rate *", isNumeric: true),
               // _buildTextField(meterController, "Meter *", isNumeric: true),
@@ -203,9 +291,32 @@ class _AddProductPageState extends State<AddProductPage> {
                 padding: const EdgeInsets.only(top: 12.0, bottom: 10.0),
                 child: ElevatedButton(
                   onPressed: images.isNotEmpty ? null : _pickImage,
-                  child: const Text('Select Image'),
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.white, backgroundColor: Colors.blue, // Text color
+                    padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30), // Padding
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10), // Rounded corners
+                    ),
+                    elevation: 5, // Shadow effect
+                  ),
+                  child: const Text(
+                    'Select Image',
+                    style: TextStyle(
+                      fontSize: 16, // Text size
+                      fontWeight: FontWeight.bold, // Text weight
+                    ),
+                  ),
                 ),
               ),
+
+
+              // Padding(
+              //   padding: const EdgeInsets.only(top: 12.0, bottom: 10.0),
+              //   child: ElevatedButton(
+              //     onPressed: images.isNotEmpty ? null : _pickImage,
+              //     child: const Text('Select Image'),
+              //   ),
+              // ),
 
               Wrap(
                 spacing: 10,
@@ -215,145 +326,157 @@ class _AddProductPageState extends State<AddProductPage> {
                     final index = entry.key;
                     final image = entry.value;
                     return image != null
-                        ? Stack(
-                          children: [
-                            Image.memory(
-                              image,
-                              height: 150,
-                              width: 150,
-                              fit: BoxFit.cover,
-                            ),
-                            Positioned(
-                              top: 0,
-                              left: 0,
-                              child: GestureDetector(
-                                onTap: () async {
-                                  showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) {
-                                      return AlertDialog(
-                                        content: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            ListTile(
-                                              leading: Icon(Icons.zoom_out_map),
-                                              title: Text('View Full Image'),
-                                              onTap: () {
-                                                Navigator.pop(context);
-                                                // Show full image dialog
-                                                showDialog(
-                                                  context: context,
-                                                  builder: (
-                                                    BuildContext context,
-                                                  ) {
-                                                    return Dialog(
-                                                      child: Image.memory(
-                                                        image,
-                                                        // Show the cropped image if updated
-                                                        fit: BoxFit.contain,
+                        ? GestureDetector(
+                          onTap: () async {
+                            // Open the full preview directly on image tap
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return Dialog(
+                                  child: Image.memory(
+                                    image,
+                                    fit: BoxFit.contain,
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                          child: Stack(
+                            children: [
+                              Image.memory(
+                                image,
+                                height: 150,
+                                width: 150,
+                                fit: BoxFit.cover,
+                              ),
+                              Positioned(
+                                top: 0,
+                                left: 0,
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return AlertDialog(
+                                          content: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              ListTile(
+                                                leading: Icon(
+                                                  Icons.zoom_out_map,
+                                                ),
+                                                title: Text('View Full Image'),
+                                                onTap: () {
+                                                  Navigator.pop(context);
+                                                  // Show full image dialog
+                                                  showDialog(
+                                                    context: context,
+                                                    builder: (
+                                                      BuildContext context,
+                                                    ) {
+                                                      return Dialog(
+                                                        child: Image.memory(
+                                                          image,
+                                                          fit: BoxFit.contain,
+                                                        ),
+                                                      );
+                                                    },
+                                                  );
+                                                },
+                                              ),
+                                              ListTile(
+                                                leading: Icon(Icons.crop),
+                                                title: Text('Crop Image'),
+                                                onTap: () async {
+                                                  Navigator.pop(context);
+                                                  try {
+                                                    final result =
+                                                        await Navigator.push(
+                                                          context,
+                                                          MaterialPageRoute(
+                                                            builder:
+                                                                (
+                                                                  context,
+                                                                ) => CropScreen(
+                                                                  image: image,
+                                                                  index: index,
+                                                                ),
+                                                          ),
+                                                        );
+                                                    if (result != null) {
+                                                      final croppedImage =
+                                                          result['croppedImage'];
+                                                      final index =
+                                                          result['index'];
+                                                      if (croppedImage !=
+                                                          null) {
+                                                        setState(() {
+                                                          images[index] =
+                                                              croppedImage;
+                                                        });
+                                                      }
+                                                    }
+                                                  } catch (e) {
+                                                    print(
+                                                      "Error cropping image: $e",
+                                                    );
+                                                    ScaffoldMessenger.of(
+                                                      context,
+                                                    ).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          "Failed to crop image: $e",
+                                                        ),
                                                       ),
                                                     );
-                                                  },
-                                                );
-                                              },
-                                            ),
-                                            ListTile(
-                                              leading: Icon(Icons.crop),
-                                              title: Text('Crop Image'),
-                                              onTap: () async {
-                                                Navigator.pop(context);
-
-                                                try {
-                                                  final result = await Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder:
-                                                          (
-                                                            context,
-                                                          ) => CropScreen(
-                                                            image: image,
-                                                            // Pass the image for cropping
-                                                            index:
-                                                                index, // Pass the index of the image being cropped
-                                                          ),
-                                                    ),
-                                                  );
-
-                                                  // Check if we received the updated image and index
-                                                  if (result != null) {
-                                                    final croppedImage =
-                                                        result['croppedImage'];
-                                                    final index =
-                                                        result['index'];
-
-                                                    if (croppedImage != null) {
-                                                      // Update the image at the selected index
-                                                      setState(() {
-                                                        images[index] =
-                                                            croppedImage;
-                                                      });
-                                                    }
                                                   }
-                                                } catch (e) {
-                                                  print(
-                                                    "Error cropping image: $e",
-                                                  );
-                                                  ScaffoldMessenger.of(
-                                                    context,
-                                                  ).showSnackBar(
-                                                    SnackBar(
-                                                      content: Text(
-                                                        "Failed to crop image: $e",
-                                                      ),
-                                                    ),
-                                                  );
-                                                }
-                                              },
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  );
-                                },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.red,
-                                  ),
-                                  padding: const EdgeInsets.all(4),
-                                  child: const Icon(
-                                    Icons.zoom_out_map,
-                                    color: Colors.white,
-                                    size: 16,
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.red,
+                                    ),
+                                    padding: const EdgeInsets.all(4),
+                                    child: const Icon(
+                                      Icons.zoom_out_map,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            Positioned(
-                              top: 0,
-                              right: 0,
-                              child: GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    images.removeAt(index);
-                                  });
-                                },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.red,
-                                  ),
-                                  padding: const EdgeInsets.all(4),
-                                  child: const Icon(
-                                    Icons.remove,
-                                    color: Colors.white,
-                                    size: 16,
+                              Positioned(
+                                top: 0,
+                                right: 0,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      images.removeAt(index);
+                                    });
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.red,
+                                    ),
+                                    padding: const EdgeInsets.all(4),
+                                    child: const Icon(
+                                      Icons.remove,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         )
                         : SizedBox();
                   }).toList(),
@@ -368,12 +491,37 @@ class _AddProductPageState extends State<AddProductPage> {
                 ],
               ),
 
+              SizedBox(height: 20),
               ElevatedButton(
                 onPressed: isLoading ? null : _addProduct,
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.blue,
+                  // Text color
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 15,
+                    horizontal: 30,
+                  ),
+                  // Padding
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10), // Rounded corners
+                  ),
+                  elevation: 5, // Shadow effect
+                ),
                 child:
                     isLoading
-                        ? const CircularProgressIndicator()
-                        : const Text("Add Product"),
+                        ? const CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<ui.Color>(
+                            Colors.white,
+                          ), // Loader color
+                        )
+                        : const Text(
+                          "Add Product",
+                          style: TextStyle(
+                            fontSize: 16, // Text size
+                            fontWeight: FontWeight.bold, // Text weight
+                          ),
+                        ),
               ),
             ],
           ),
@@ -385,12 +533,13 @@ class _AddProductPageState extends State<AddProductPage> {
   Widget _buildTextField(
     TextEditingController controller,
     String label, {
-    bool isNumeric = false,
+    bool isNumeric = false, required FocusNode focusNode,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextField(
         controller: controller,
+        focusNode: focusNode,
         keyboardType:
             isNumeric
                 ? TextInputType.numberWithOptions(decimal: true)
@@ -399,81 +548,6 @@ class _AddProductPageState extends State<AddProductPage> {
           labelText: label,
           border: const OutlineInputBorder(),
         ),
-      ),
-    );
-  }
-}
-
-class CropScreen extends StatefulWidget {
-  final Uint8List image;
-  final int index;
-
-  CropScreen({required this.image, required this.index});
-
-  @override
-  _CropScreenState createState() => _CropScreenState();
-}
-
-class _CropScreenState extends State<CropScreen> {
-  final controller = CropController();
-
-  Future<void> _handleImageCrop(BuildContext context) async {
-    try {
-      final ui.Image croppedUiImage = (await controller.croppedImage()) as ui.Image;
-
-      final ByteData? byteData = await croppedUiImage.toByteData(
-        format: ui.ImageByteFormat.png,
-      );
-
-      if (byteData == null) {
-        throw Exception('Failed to process cropped image: No byte data received');
-      }
-
-      final Uint8List croppedImageBytes = byteData.buffer.asUint8List();
-
-      final Uint8List? compressedImage = await FlutterImageCompress.compressWithList(
-        croppedImageBytes,
-        minWidth: 300,
-        minHeight: 300,
-        quality: 20,
-      );
-
-      if (compressedImage == null || compressedImage.isEmpty) {
-        throw Exception('Failed to compress cropped image');
-      }
-
-      Navigator.pop(context, {
-        'croppedImage': compressedImage,
-        'index': widget.index,
-      });
-    } catch (e) {
-      print("Error cropping image: $e");
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to crop image: $e"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 3),
-        ),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Crop Image"),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.done),
-            onPressed: () => _handleImageCrop(context),
-          ),
-        ],
-      ),
-      body: CropImage(
-        controller: controller,
-        image: Image.memory(widget.image),  // Displaying image from memory (Uint8List)
       ),
     );
   }
