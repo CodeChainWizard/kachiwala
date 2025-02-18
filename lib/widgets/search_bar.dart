@@ -83,6 +83,7 @@ class CustomSearchBar extends StatefulWidget {
 
 class _CustomSearchBarState extends State<CustomSearchBar> {
   final FocusNode _focusNode = FocusNode();
+  String selectedFilter = 'A-Z';
 
   @override
   void dispose() {

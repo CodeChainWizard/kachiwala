@@ -298,6 +298,7 @@
 // }
 
 import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:newprg/services/api_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
@@ -333,19 +334,54 @@ class _AddProductDialogState extends State<AddProductDialog> {
   bool isImagePicked = false;
 
   List<Uint8List?> images = [];
+  Uint8List? compressedImage;
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-    );
-    if (pickedFile != null) {
-      final bytes = await pickedFile.readAsBytes();
-      setState(() {
-        images.add(bytes);
-        isImagePicked = false;
-      });
+    try {
+      final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        final imageBytes = await pickedFile.readAsBytes();
+
+        // Compress the selected image
+        final compressed = await _compressImage(imageBytes);
+        if (compressed != null) {
+          setState(() {
+            compressedImage = compressed;
+            images.add(compressed); // Add to the list of selected images
+          });
+        }
+      }
+    } catch (e) {
+      print("Error selecting image: $e");
     }
   }
+
+  Future<Uint8List?> _compressImage(Uint8List imageBytes) async {
+    if (imageBytes.isEmpty) {
+      print("Error: Empty image data received for compression.");
+      return null;
+    }
+
+    try {
+      final compressedImage = await FlutterImageCompress.compressWithList(
+        imageBytes,
+        minWidth: 300,
+        minHeight: 300,
+        quality: 20,
+      );
+
+      if (compressedImage == null || compressedImage.isEmpty) {
+        print("Error: Image compression failed.");
+        return null;
+      }
+
+      return compressedImage;
+    } catch (e) {
+      print("Error during image compression: $e");
+      return null;
+    }
+  }
+
 
   // Helper method to focus on the first field that is not filled
   void _focusOnField(TextEditingController controller) {

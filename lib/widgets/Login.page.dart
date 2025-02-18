@@ -1,6 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:newprg/home_page.dart';
-import 'package:newprg/main.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:path_provider/path_provider.dart';
+
+import '../home_page.dart';
+import '../main.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -12,7 +17,15 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  bool _isPasswordVisible = false; // For toggling password visibility
+  bool _isPasswordVisible = false;
+  File? compressedImage;
+  bool _isLoading = true; // To track if the image is still loading
+
+  @override
+  void initState() {
+    super.initState();
+    loadAndCompressImage();
+  }
 
   void onLoginSuccess(BuildContext context) async {
     await setLoginStatus(true);
@@ -29,7 +42,7 @@ class _LoginPageState extends State<LoginPage> {
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please Enter Both Username and Password')),
+        const SnackBar(content: Text('Please Enter Both Username and Password')),
       );
       return;
     }
@@ -38,10 +51,65 @@ class _LoginPageState extends State<LoginPage> {
       onLoginSuccess(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invalid Credentials')),
+        const SnackBar(content: Text('Invalid Credentials')),
       );
     }
   }
+
+  Future<void> loadAndCompressImage() async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final tempPath = "${tempDir.path}/kachiwala.png";
+
+      final ByteData data = await rootBundle.load("assets/images/kachiwala.png");
+      final buffer = data.buffer;
+      final File tempFile = File(tempPath);
+      await tempFile.writeAsBytes(
+          buffer.asUint8List(data.offsetInBytes, data.lengthInBytes));
+
+      final File? compressed = await compressImage(tempPath);
+
+      if (compressed != null) {
+        setState(() {
+          compressedImage = compressed;
+          _isLoading = false;
+        });
+      } else {
+        print("Compression returned null");
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Error loading or compressing image: $e");
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<File?> compressImage(String path) async {
+    try {
+      final newPath = "${path}_compressed.png";
+      final result = await FlutterImageCompress.compressAndGetFile(
+        path,
+        newPath,
+        quality: 20,
+        format: CompressFormat.png,
+      );
+
+      if (result == null) {
+        print("Compression failed");
+        return null;
+      }
+
+      return File(result.path); // Return the compressed PNG file
+    } catch (e) {
+      print("Error during compression: $e");
+      return null;
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -54,25 +122,25 @@ class _LoginPageState extends State<LoginPage> {
             children: [
               // Logo
               Center(
-                child: SizedBox(
+                child:SizedBox(
                   height: 100,
                   width: 100,
-                  child: Image.asset(
-                    "assets/images/kachiwala.png",
-                    fit: BoxFit.cover,
-                  ),
+                  child: compressedImage != null
+                      ? Image.file(compressedImage!, fit: BoxFit.cover,)
+                      // ? Image.asset("assets/images/kachiwala.png")
+                      : null,
                 ),
               ),
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
               // Title
-              Text(
+              const Text(
                 'Log in',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
               // Email Input Field
               TextField(
                 controller: emailController,
@@ -84,7 +152,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 keyboardType: TextInputType.text,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               // Password Input Field with Toggle Visibility
               TextField(
                 controller: passwordController,
@@ -108,18 +176,18 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 obscureText: !_isPasswordVisible,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               // Continue Button
               ElevatedButton(
                 onPressed: _navigateToHomePage,
                 style: ElevatedButton.styleFrom(
-                  minimumSize: Size(double.infinity, 50),
+                  minimumSize: const Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8.0),
                   ),
                   backgroundColor: Colors.black,
                 ),
-                child: Text(
+                child: const Text(
                   'Continue',
                   style: TextStyle(color: Colors.white),
                 ),

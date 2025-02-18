@@ -4,8 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:newprg/widgets/CreateNewProduct.dart';
 import 'package:newprg/widgets/shareProduct.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:newprg/main.dart';
 import 'package:newprg/widgets/Login.page.dart';
@@ -55,10 +57,12 @@ class _HomePageState extends ConsumerState<HomePage> {
   // ---- Apply Page ----
   int currentPage = 0;
   int totalPages = 0;
-  final int itemsPerPage = 6;
+  final int itemPerPage = 6;
 
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
+
+  String selectedFilter = "A-Z";
 
   @override
   void initState() {
@@ -68,7 +72,92 @@ class _HomePageState extends ConsumerState<HomePage> {
     _initializePrefs();
 
     _scrollController.addListener(_scrollListener);
+    // _requestStoragePermission(context);
   }
+
+
+  Future<void> _requestStoragePermission(BuildContext context) async {
+    // Check the current permission status
+    PermissionStatus status = await Permission.storage.status;
+
+    // If permission is already granted, no need to request again
+    if (status.isGranted) {
+      print("Storage permission is already granted!");
+      return;
+    }
+
+    // If permission is denied, restricted, or limited, request it
+    final result = await Permission.storage.request();
+
+    // Handle the result of the permission request
+    if (result.isGranted) {
+      // Permission granted, proceed with necessary functionality
+      print("Storage permission granted!");
+    } else if (result.isDenied) {
+      // Permission explicitly denied, show an error dialog
+      _showPermissionDialog(
+        context,
+        'Storage Permission Denied',
+        'Storage permission is required to access product files. Without it, some features may not work properly. Please grant access.',
+      );
+    } else if (result.isPermanentlyDenied) {
+      // Permission permanently denied, suggest going to app settings
+      _showPermissionDialog(
+        context,
+        'Storage Permission Permanently Denied',
+        'You have permanently denied storage permission. Please enable it from app settings to continue using the app.',
+        openSettings: true,
+      );
+    } else if (result.isRestricted) {
+      // Permission restricted (e.g., parental controls), show info
+      _showPermissionDialog(
+        context,
+        'Storage Permission Restricted',
+        'Storage permission is restricted on your device. Please check your device settings.',
+      );
+    }
+  }
+
+
+  void _showPermissionDialog(
+      BuildContext context,
+      String title,
+      String content, {
+        bool openSettings = false,
+      }) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
+          content: Text(content),
+          actions: [
+            // "Cancel" button for users who don't want to proceed
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Dismiss the dialog
+              },
+              child: Text('Cancel', style: TextStyle(color: Colors.red)),
+            ),
+            // "Okay" or "Open Settings" button depending on the context
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Dismiss the dialog
+                if (openSettings) {
+                  openAppSettings(); // Redirect user to app settings
+                }
+              },
+              child: Text(
+                openSettings ? 'Open Settings' : 'Okay',
+                style: TextStyle(color: Colors.blue),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 
   void _scrollListener() {
     if (_scrollController.position.atEdge &&
@@ -78,6 +167,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       }
     }
   }
+
 
   Future<void> _initializePrefs() async {
     pref = await SharedPreferences.getInstance();
@@ -254,36 +344,58 @@ class _HomePageState extends ConsumerState<HomePage> {
     return counter.state;
   }
 
-  // Future<void> clearCache() async {
-  //   if (kIsWeb) {
-  //     print("Cache clearing is not supported on Flutter Web.");
-  //     return;
-  //   }
-  //
-  //   try {
-  //     final directory = await getTemporaryDirectory();
-  //     final tempDir = Directory(directory.path);
-  //     if (tempDir.existsSync()) {
-  //       print("Cache directory: ${tempDir.path}");
-  //       tempDir.listSync().forEach((file) {
-  //         if (file is File) {
-  //           print(
-  //             "Deleting file: ${file.path} (Size: ${file.lengthSync()} bytes)",
-  //           );
-  //           file.deleteSync();
-  //         } else if (file is Directory) {
-  //           print("Deleting directory: ${file.path}");
-  //           file.deleteSync(recursive: true);
-  //         }
-  //       });
-  //     } else {
-  //       print("Cache directory does not exist.");
-  //     }
-  //   } catch (e) {
-  //     print("Cache directory does not exist.$e");
-  //   }
-  // }
+  Future<void> clearCache() async {
+    if (kIsWeb) {
+      print("Cache clearing is not supported on Flutter Web.");
+      return;
+    }
 
+    try {
+      final directory = await getTemporaryDirectory();
+      final tempDir = Directory(directory.path);
+      if (tempDir.existsSync()) {
+        print("Cache directory: ${tempDir.path}");
+        tempDir.listSync().forEach((file) {
+          if (file is File) {
+            print(
+              "Deleting file: ${file.path} (Size: ${file.lengthSync()} bytes)",
+            );
+            file.deleteSync();
+          } else if (file is Directory) {
+            print("Deleting directory: ${file.path}");
+            file.deleteSync(recursive: true);
+          }
+        });
+      } else {
+        print("Cache directory does not exist.");
+      }
+    } catch (e) {
+      print("Cache directory does not exist.$e");
+    }
+  }
+
+  void _applyFilter(String filter) {
+    List<Product> productsCopy = List.from(products);
+
+    switch (filter) {
+      case 'A-Z':
+        productsCopy.sort((a, b) => a.name.compareTo(b.name));
+        break;
+      case 'Z-A':
+        productsCopy.sort((a, b) => b.name.compareTo(a.name));
+        break;
+      case 'Price: High to Low':
+        productsCopy.sort((a, b) => b.rate.compareTo(a.rate));
+        break;
+      case 'Price: Low to High':
+        productsCopy.sort((a, b) => a.rate.compareTo(b.rate));
+        break;
+    }
+
+    setState(() {
+      filteredProducts = productsCopy;
+    });
+  }
 
 
   @override
@@ -300,7 +412,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               SharedPreferences prefs = await SharedPreferences.getInstance();
               await prefs.clear();
 
-              // await clearCache();
+              await clearCache();
 
               await setLoginStatus(false);
               Navigator.pushReplacement(
@@ -375,7 +487,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             SharedPreferences prefs = await SharedPreferences.getInstance();
             await prefs.clear();
 
-            // await clearCache();
+            await clearCache();
 
             await setLoginStatus(false);
             Navigator.pushReplacement(
@@ -403,67 +515,185 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          CustomSearchBar(
-            onSearchChanged: _onSearchChanged,
-            refreshProducts: () {
-              setState(() {
-                filteredProducts = List.from(products);
-              });
-            },
-            searchController: _searchController,
-          ),
-          Expanded(
-            child: filteredProducts.isEmpty
-                ? const Center(
-              child: Text(
-                "No Products Found",
-                style: TextStyle(
-                  fontSize: 22,
-                  color: Colors.grey,
-                  fontWeight: FontWeight.bold,
+
+      body: Padding(
+        padding: const EdgeInsets.all(5.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                // Search Bar
+                Expanded(
+                  child: CustomSearchBar(
+                    onSearchChanged: _onSearchChanged,
+                    refreshProducts: () {
+                      setState(() {
+                        filteredProducts = List.from(products);
+                      });
+                    },
+                    searchController: _searchController,
+                  ),
                 ),
-              ),
-            )
-                : GridView.builder(
-              controller: _scrollController,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 8.0,
-                crossAxisSpacing: 8.0,
-                childAspectRatio: 3 / 4,
-              ),
-              itemCount: filteredProducts.length + (isLoading ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == filteredProducts.length && isLoading) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
-                final product = filteredProducts[index];
-                return ProductCard(
-                  product: product,
-                  index: index,
-                  isGlobalSelected: isSelectAll,
-                  isSelectAll: isSelectAll,
-                  onTap: () {
-                    setState(() {
-                      if (!selectedProductIds.contains(product.id)) {
-                        selectedProductIds.add(product.id);
-                      } else {
-                        selectedProductIds.remove(product.id);
-                      }
-                    });
-                  },
-                  updateCounter: updateCounter,
-                  selectedProductIds: selectedProductIds,
-                );
-              },
+
+                // Dropdown for Filter
+                Padding(
+                  padding: const EdgeInsets.only(left: 10.0),
+                  child: Container(
+                    // decoration: BoxDecoration(
+                    //   border: Border.all(
+                    //     color: Colors.grey,
+                    //     width: 1.0
+                    //   ),
+                    //   borderRadius: BorderRadius.circular(5.0)
+                    // ),
+                    child: DropdownButton<String>(
+                      value: selectedFilter,
+
+                      onChanged: (String? newFilter) {
+                        if (newFilter != null) {
+                          setState(() {
+                            selectedFilter = newFilter;
+                          });
+                          _applyFilter(newFilter);
+                        }
+                      },
+                      items: [
+                        'A-Z',
+                        'Z-A',  // Added Z-A option
+                        'Price: High to Low',
+                        'Price: Low to High'
+                      ].map((String filter) {
+                        return DropdownMenuItem<String>(
+                          value: filter,
+                          child: Text(filter),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+
+            // Product Grid View
+            Expanded(
+              child: filteredProducts.isEmpty
+                  ? const Center(
+                child: Text(
+                  "No Products Found",
+                  style: TextStyle(
+                    fontSize: 22,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              )
+                  : GridView.builder(
+                controller: _scrollController,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 8.0,
+                  crossAxisSpacing: 8.0,
+                  childAspectRatio: 3 / 4,
+                ),
+                itemCount: filteredProducts.length + (isLoading ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == filteredProducts.length && isLoading) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+                  final product = filteredProducts[index];
+                  return ProductCard(
+                    product: product,
+                    index: index,
+                    isGlobalSelected: isSelectAll,
+                    isSelectAll: isSelectAll,
+                    onTap: () {
+                      setState(() {
+                        if (!selectedProductIds.contains(product.id)) {
+                          selectedProductIds.add(product.id);
+                        } else {
+                          selectedProductIds.remove(product.id);
+                        }
+                      });
+                    },
+                    updateCounter: updateCounter,
+                    selectedProductIds: selectedProductIds,
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
+
+
+      // body: Padding(
+      //   padding: const EdgeInsets.all(5.0),
+      //   child: Column(
+      //     children: [
+      //       CustomSearchBar(
+      //         onSearchChanged: _onSearchChanged,
+      //         refreshProducts: () {
+      //           setState(() {
+      //             filteredProducts = List.from(products);
+      //           });
+      //         },
+      //         searchController: _searchController,
+      //       ),
+      //       Expanded(
+      //         child: filteredProducts.isEmpty
+      //             ? const Center(
+      //           child: Text(
+      //             "No Products Found",
+      //             style: TextStyle(
+      //               fontSize: 22,
+      //               color: Colors.grey,
+      //               fontWeight: FontWeight.bold,
+      //             ),
+      //           ),
+      //         )
+      //             : GridView.builder(
+      //           controller: _scrollController,
+      //           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      //             crossAxisCount: 2,
+      //             mainAxisSpacing: 8.0,
+      //             crossAxisSpacing: 8.0,
+      //             childAspectRatio: 3 / 4,
+      //           ),
+      //           itemCount: filteredProducts.length + (isLoading ? 1 : 0),
+      //           itemBuilder: (context, index) {
+      //             if (index == filteredProducts.length && isLoading) {
+      //               return const Center(
+      //                 child: CircularProgressIndicator(),
+      //               );
+      //             }
+      //             final product = filteredProducts[index];
+      //             return ProductCard(
+      //               product: product,
+      //               index: index,
+      //               isGlobalSelected: isSelectAll,
+      //               isSelectAll: isSelectAll,
+      //               onTap: () {
+      //                 setState(() {
+      //                   if (!selectedProductIds.contains(product.id)) {
+      //                     selectedProductIds.add(product.id);
+      //                   } else {
+      //                     selectedProductIds.remove(product.id);
+      //                   }
+      //                 });
+      //               },
+      //               updateCounter: updateCounter,
+      //               selectedProductIds: selectedProductIds,
+      //             );
+      //           },
+      //         ),
+      //       ),
+      //     ],
+      //   ),
+      // ),
       floatingActionButton: counterValue > 0
           ? SpeedDial(
         animatedIcon: AnimatedIcons.menu_close,
@@ -601,10 +831,15 @@ class _HomePageState extends ConsumerState<HomePage> {
         onPressed: () {
           showDialog(
             context: context,
-            builder: (_) => AddProductDialog(
+            builder: (_) => AddProductPage(
               onProductAdded: _refreshProducts,
-              isLoading: isLoading,
+              // isLoading: isLoading,
             ),
+
+            // builder: (_) => AddProductDialog(
+            //   onProductAdded: _refreshProducts,
+            //   isLoading: isLoading,
+            // ),
           );
         },
         backgroundColor: Colors.blue,

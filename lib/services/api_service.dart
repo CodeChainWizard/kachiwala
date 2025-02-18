@@ -167,7 +167,7 @@ class ApiService {
 
         return data.map((json) => Product.fromJson(json)).toList();
       } else {
-        print("Failed to fetch products. Status Code: ${response.statusCode}"); // Debug statement
+        print("Failed to fetch products. Status Code: ${response.statusCode}");
         throw Exception('Failed to fetch products for search query');
       }
     } catch (e) {
