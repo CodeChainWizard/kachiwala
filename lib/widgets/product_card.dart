@@ -59,10 +59,9 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     });
   }
 
-
-
   Future<void> _compressAndLoadImage() async {
-    if (widget.product.imagePaths == null || widget.product.imagePaths!.isEmpty) {
+    if (widget.product.imagePaths == null ||
+        widget.product.imagePaths!.isEmpty) {
       print("No image paths found.");
       return;
     }
@@ -86,7 +85,9 @@ class _ProductCardState extends ConsumerState<ProductCard> {
       }
 
       if (compressedImage != null) {
-        print("Image successfully compressed. Length: ${compressedImage!.length}");
+        print(
+          "Image successfully compressed. Length: ${compressedImage!.length}",
+        );
       } else {
         print("Image compression returned null.");
       }
@@ -123,7 +124,6 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     }
   }
 
-
   bool sharedFlag = false;
 
   Future<void> _shareProducts(List<Product> products) async {
@@ -136,17 +136,18 @@ class _ProductCardState extends ConsumerState<ProductCard> {
       for (int i = 0; i < products.length; i++) {
         final product = products[i];
         shareText.write(
-              'Design No: ${product.designNo}\n'
-              'Price: ₹${product.rate}\n'
-              'Unit: ${product.size}\n'
-              'Meter: ${product.meter}\n\n',
+          'Design No: ${product.designNo}\n'
+          'Price: ₹${product.rate}\n'
+          'Unit: ${product.size}\n'
+          'Meter: ${product.meter}\n\n',
         );
 
         if (product.imagePaths != null && product.imagePaths!.isNotEmpty) {
           final imagePath = product.imagePaths![0];
-          final imageBytes = imagePath.startsWith('http')
-              ? (await http.get(Uri.parse(imagePath))).bodyBytes
-              : base64Decode(imagePath);
+          final imageBytes =
+              imagePath.startsWith('http')
+                  ? (await http.get(Uri.parse(imagePath))).bodyBytes
+                  : base64Decode(imagePath);
 
           final tempDir = await getTemporaryDirectory();
           final file = io.File('${tempDir.path}/product_$i.png');
@@ -167,7 +168,6 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     }
   }
 
-
   String _resolveImageUrl(String path) {
     // return path.replaceAll("\\", "/");
     return path;
@@ -183,10 +183,10 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     final screenWidth = MediaQuery.of(context).size.width;
 
     final resolvedImagePath =
-    widget.product.imagePaths != null &&
-        widget.product.imagePaths!.isNotEmpty
-        ? _resolveImageUrl(widget.product.imagePaths![0])
-        : null;
+        widget.product.imagePaths != null &&
+                widget.product.imagePaths!.isNotEmpty
+            ? _resolveImageUrl(widget.product.imagePaths![0])
+            : null;
 
     return GestureDetector(
       onLongPress: () async {
@@ -237,37 +237,43 @@ class _ProductCardState extends ConsumerState<ProductCard> {
 
       child: Card(
         margin: EdgeInsets.all(2.0),
-        color: widget.selectedProductIds.contains(widget.product.id) && widget.isSelectAll || isSelected ? Colors.blueAccent.withOpacity(0.1)   : null,
+        color:
+            widget.selectedProductIds.contains(widget.product.id) &&
+                        widget.isSelectAll ||
+                    isSelected
+                ? Color(0xFFCCD5AE)
+                // : Color(0xFF),
+                : Color(0xFFE8E8E4),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
               child:
-              widget.product.imagePaths != null &&
-                  widget.product.imagePaths!.isNotEmpty
-                  ? ClipRRect(
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(8.0),
-                ),
-                child: Container(
-                  width: MediaQuery.of(context).size.width * 0.5,
-                  child: Image.network(
-                    // _resolveImageUrl(widget.product.imagePaths![0]),
-                    // "http://192.168.1.2:5000/uploads/folder1/1734342621219-573985215.jpg",
-                    resolvedImagePath!,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Icon(
-                        Icons.broken_image,
-                        size: 100,
-                        color: Colors.grey,
-                      );
-                    },
-                  ),
-                ),
-              )
-                  : Icon(Icons.image, size: 100, color: Colors.grey),
+                  widget.product.imagePaths != null &&
+                          widget.product.imagePaths!.isNotEmpty
+                      ? ClipRRect(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(8.0),
+                        ),
+                        child: Container(
+                          width: MediaQuery.of(context).size.width * 0.5,
+                          child: Image.network(
+                            // _resolveImageUrl(widget.product.imagePaths![0]),
+                            // "http://192.168.1.2:5000/uploads/folder1/1734342621219-573985215.jpg",
+                            resolvedImagePath!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Icon(
+                                Icons.broken_image,
+                                size: 100,
+                                color: Colors.grey,
+                              );
+                            },
+                          ),
+                        ),
+                      )
+                      : Icon(Icons.image, size: 100, color: Colors.grey),
             ),
 
             Padding(
@@ -280,110 +286,128 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Type : ${widget.product.type}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-
-                            SizedBox(height: 15.0),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                RichText(
-                                  text: TextSpan(
-                                    children: [
-                                      const TextSpan(
-                                        text: 'Price(₹) : ',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                      TextSpan(
-                                        text: '${widget.product.rate} Rs',
-                                        style: TextStyle(
-                                          fontSize: isSmallScreen ? 14 : 16,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 5.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(height: 10.0),
+                              Text(
+                                'Type : ${widget.product.type}',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                              ],
-                            ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
 
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Tooltip(
-                                    message: "Dataaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                                    child: RichText(
-                                      overflow: TextOverflow.ellipsis,
-                                      text: TextSpan(
-                                        children: [
-                                          const TextSpan(
-                                            text: 'Person: ',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.black,
-                                            ),
+                              SizedBox(height: 15.0),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  RichText(
+                                    text: TextSpan(
+                                      children: [
+                                        const TextSpan(
+                                          text: 'Price(₹) : ',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black,
                                           ),
-                                          TextSpan(
-                                            text: "Dataaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", // The long name
-                                            style: TextStyle(
-                                              fontSize: isSmallScreen ? 14 : 16,
-                                              color: Colors.grey[600],
-                                            ),
+                                        ),
+                                        TextSpan(
+                                          text: '${widget.product.rate} Rs',
+                                          style: TextStyle(
+                                            fontSize: isSmallScreen ? 14 : 16,
+                                            color: Colors.grey[600],
                                           ),
-                                        ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Tooltip(
+                                      message:
+                                          "Dataaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                                      child: RichText(
+                                        overflow: TextOverflow.ellipsis,
+                                        text: TextSpan(
+                                          children: [
+                                            const TextSpan(
+                                              text: 'Person: ',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.black,
+                                              ),
+                                            ),
+                                            TextSpan(
+                                              text:
+                                                  "Dataaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                                              // The long name
+                                              style: TextStyle(
+                                                fontSize:
+                                                    isSmallScreen ? 14 : 16,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.share),
-                                  onPressed: () async {
-                                    try {
-                                      // Get the selected products
-                                      final selectedProducts = widget.selectedProductIds.isNotEmpty
-                                          ? widget.selectedProductIds.map((id) => widget.product).toList()
-                                          : [widget.product];
+                                  IconButton(
+                                    icon: const Icon(Icons.share),
+                                    onPressed: () async {
+                                      try {
+                                        // Get the selected products
+                                        final selectedProducts =
+                                            widget.selectedProductIds.isNotEmpty
+                                                ? widget.selectedProductIds
+                                                    .map((id) => widget.product)
+                                                    .toList()
+                                                : [widget.product];
 
-                                      // Iterate through the selected products
-                                      for (var product in selectedProducts) {
-                                        if (product.imagePaths != null && product.imagePaths!.isNotEmpty) {
-                                          if (product.imagePaths!.length == 1) {
-                                            // Share normally if there's only one image
-                                            await _shareProducts([product]);
+                                        // Iterate through the selected products
+                                        for (var product in selectedProducts) {
+                                          if (product.imagePaths != null &&
+                                              product.imagePaths!.isNotEmpty) {
+                                            if (product.imagePaths!.length ==
+                                                1) {
+                                              // Share normally if there's only one image
+                                              await _shareProducts([product]);
+                                            } else {
+                                              // Share all images if there are multiple, ensuring details are added only once
+                                              await _shareProductsWithMultipleImages(
+                                                product,
+                                              );
+                                            }
                                           } else {
-                                            // Share all images if there are multiple, ensuring details are added only once
-                                            await _shareProductsWithMultipleImages(product);
+                                            print(
+                                              "No images found for product: ${product.id}",
+                                            );
                                           }
-                                        } else {
-                                          print("No images found for product: ${product.id}");
                                         }
+                                      } catch (e) {
+                                        print("Error sharing products: $e");
                                       }
-                                    } catch (e) {
-                                      print("Error sharing products: $e");
-                                    }
-                                  },
-                                  iconSize: isSmallScreen ? 18 : 22,
-                                ),
-                              ],
-                            ),
-
-                          ],
+                                    },
+                                    iconSize: isSmallScreen ? 18 : 22,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -405,10 +429,10 @@ class _ProductCardState extends ConsumerState<ProductCard> {
       // Add product details only once
       shareTextBuffer.write(
         'Check out this product:\n\n'
-            'Design No: ${product.designNo}\n'
-            'Price: ₹${product.rate}\n'
-            // 'Unit: ${product.un}\n'
-            'Size: ${product.size}\n\n',
+        'Design No: ${product.designNo}\n'
+        'Price: ₹${product.rate}\n'
+        // 'Unit: ${product.un}\n'
+        'Size: ${product.size}\n\n',
       );
 
       // Add all images to the share list
@@ -447,7 +471,6 @@ class _ProductCardState extends ConsumerState<ProductCard> {
       print("Error sharing multiple images for product: $e");
     }
   }
-
 
   /// Builds the product image widget.
   Widget _buildProductImage(String? imageUrl, bool isSmallScreen) {

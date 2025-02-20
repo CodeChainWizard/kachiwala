@@ -55,8 +55,6 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   List<String> selectedProductIds = [];
 
-
-
   void updateSelectedProductIds(List<String> updatedIds) {
     setState(() {
       selectedProductIds = updatedIds;
@@ -414,7 +412,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     storedEmail = sp.getString("email");
   }
 
-
   @override
   Widget build(BuildContext context) {
     var counterValue = ref.watch(counterProvider.state).state;
@@ -453,7 +450,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                         child: TextButton(
                           style: TextButton.styleFrom(
                             backgroundColor: Colors.blue,
-                            padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                            padding: EdgeInsets.symmetric(
+                              vertical: 10,
+                              horizontal: 20,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -538,10 +538,19 @@ class _HomePageState extends ConsumerState<HomePage> {
         body: Column(
           children: [
             CustomSearchBar(
-              onSearchChanged: _onSearchChanged,
-              refreshProducts: _refreshProducts,
-              searchController: _searchController,
+              onSearchResultsUpdated: (filteredList) {
+                setState(() {
+                  filteredProducts = filteredList;
+                });
+                print("FILTER PRODUCT: $filteredProducts");
+              },
+              refreshProducts: () {
+                setState(() {
+                  filteredProducts = List.from(products);
+                });
+              },
               products: products,
+              searchController: _searchController,
             ),
             // Shimmer loading effect
             Expanded(
@@ -573,17 +582,14 @@ class _HomePageState extends ConsumerState<HomePage> {
       );
     }
 
-
-
-
     // Display product list when not loading
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: const Text('Kachiwala'),
+        backgroundColor: Color(0xFF1D3557),
+        title: const Text('Kachiwala', style: TextStyle(color: Colors.white)),
         leading: IconButton(
-          icon: const Icon(Icons.logout),
+          icon: const Icon(Icons.logout, color: Colors.white),
           onPressed: () async {
             bool? confirmLogout = await showDialog(
               context: context,
@@ -602,7 +608,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                       children: <TextSpan>[
                         TextSpan(
                           text: '"${storedEmail?.toUpperCase()}" ',
-                          style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w400),
+                          style: TextStyle(
+                            fontSize: 18.0,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
                         TextSpan(
                           text: 'Are you sure you want to logout?',
@@ -619,7 +628,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                     TextButton(
                       style: TextButton.styleFrom(
                         backgroundColor: Colors.green,
-                        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                        padding: EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 20,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -640,7 +652,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                     TextButton(
                       style: TextButton.styleFrom(
                         backgroundColor: Colors.blue,
-                        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                        padding: EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 20,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -657,7 +672,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                         ),
                       ),
                     ),
-
                   ],
                 );
               },
@@ -699,7 +713,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   style: const TextStyle(
                     fontSize: 16, // Text size
                     fontWeight: FontWeight.bold, // Text weight
-                    color: Colors.blue, // Text color
+                    color: Colors.white, // Text color
                   ),
                 ),
               )
@@ -713,7 +727,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               : SizedBox(),
 
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
+            icon: const Icon(Icons.more_vert, color: Colors.white),
             onSelected: (String choice) async {
               if (choice == 'Refresh') {
                 _refreshProducts();
@@ -776,7 +790,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                   // Search Bar
                   Expanded(
                     child: CustomSearchBar(
-                      onSearchChanged: _onSearchChanged,
+                      onSearchResultsUpdated: (filteredList) {
+                        setState(() {
+                          filteredProducts = filteredList;
+                        });
+                        print("FILTER PRODUCT: $filteredProducts");
+                      },
                       refreshProducts: () {
                         setState(() {
                           filteredProducts = List.from(products);
@@ -789,41 +808,48 @@ class _HomePageState extends ConsumerState<HomePage> {
 
                   // Dropdown for Filter
                   Padding(
-                    padding: const EdgeInsets.only(left: 10.0),
-                    child: Container(
+                    padding: EdgeInsets.only(bottom: 8.0, top: 8.0, right: 3.0),
+                    child: SizedBox(
+                      height: 35,
+                      width: 35,
                       // decoration: BoxDecoration(
-                      //   border: Border.all(
-                      //     color: Colors.grey,
-                      //     width: 1.0
-                      //   ),
-                      //   borderRadius: BorderRadius.circular(5.0)
+                      //   border: Border.all(color: Colors.grey, width: 1.0),
+                      //   borderRadius: BorderRadius.circular(50.0),
+                      //   color: Colors.white, // Background color
                       // ),
-                      child: DropdownButton<String>(
-                        value: selectedFilter,
-
-                        onChanged: (String? newFilter) {
-                          if (newFilter != null) {
+                      child: Padding(
+                        padding: EdgeInsets.only(top: 3.0),
+                        child: PopupMenuButton<String>(
+                          icon: Icon(Icons.filter_list, color: Colors.black, size: 20),
+                          padding: EdgeInsets.zero, // Removes extra padding
+                          constraints: BoxConstraints(), // Prevents unnecessary expansion
+                          onSelected: (String newFilter) {
                             setState(() {
                               selectedFilter = newFilter;
                             });
                             _applyFilter(newFilter);
-                          }
-                        },
-                        items:
-                            [
+                          },
+                          itemBuilder: (BuildContext context) {
+                            return [
                               'A-Z',
-                              'Z-A', // Added Z-A option
+                              'Z-A',
                               'Price: High to Low',
                               'Price: Low to High',
                             ].map((String filter) {
-                              return DropdownMenuItem<String>(
+                              return PopupMenuItem<String>(
                                 value: filter,
-                                child: Text(filter),
+                                child: Text(
+                                  filter,
+                                  style: TextStyle(color: Colors.black54),
+                                ),
                               );
-                            }).toList(),
+                            }).toList();
+                          },
+                        ),
                       ),
                     ),
                   ),
+
                 ],
               ),
 
@@ -895,15 +921,15 @@ class _HomePageState extends ConsumerState<HomePage> {
                 curve: Curves.easeInOut,
                 onOpen: () => setState(() => isMenuOpen = true),
                 onClose: () => setState(() => isMenuOpen = false),
-                backgroundColor: Colors.blueAccent,
+                backgroundColor: Color(0xFF1D3557),
                 foregroundColor: Colors.white,
                 elevation: 10.0,
                 shape: CircleBorder(),
                 children: [
                   SpeedDialChild(
-                    child: Icon(Icons.share),
+                    child: Icon(Icons.share, color: Colors.white,),
                     backgroundColor: Colors.green,
-                    label: 'Share',
+                    // label: 'Share',
                     labelStyle: TextStyle(fontSize: 16.0, color: Colors.white),
                     labelBackgroundColor: Colors.green,
                     onTap: () async {
@@ -929,9 +955,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                     },
                   ),
                   SpeedDialChild(
-                    child: Icon(Icons.delete),
+                    child: Icon(Icons.delete, color: Colors.white),
                     backgroundColor: Colors.red,
-                    label: 'Delete',
+                    // label: 'Delete',
                     labelStyle: TextStyle(
                       fontSize: 16.0,
                       color: Colors.white,
@@ -1038,8 +1064,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                     // ),
                   );
                 },
-                backgroundColor: Colors.blue,
-                child: Icon(Icons.add, color: Colors.white),
+                backgroundColor: Color(0xFF1D3557),
+                child: Icon(Icons.add, color: Colors.white,),
               ),
     );
   }

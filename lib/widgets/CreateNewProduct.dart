@@ -267,6 +267,7 @@ class _AddProductPageState extends State<AddProductPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(title: const Text("Create New Product")),
       body: SingleChildScrollView(
         child: Padding(
