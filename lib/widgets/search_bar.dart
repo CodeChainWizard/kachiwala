@@ -65,16 +65,19 @@
 // }
 
 import 'package:flutter/material.dart';
+import 'package:newprg/models/product.dart';
 
 class CustomSearchBar extends StatefulWidget {
   final Function(String) onSearchChanged;
   final VoidCallback refreshProducts;
   final TextEditingController searchController;
+  final List<Product> products;
 
   CustomSearchBar({
     required this.onSearchChanged,
     required this.refreshProducts,
     required this.searchController,
+    required this.products
   });
 
   @override
@@ -84,11 +87,25 @@ class CustomSearchBar extends StatefulWidget {
 class _CustomSearchBarState extends State<CustomSearchBar> {
   final FocusNode _focusNode = FocusNode();
   String selectedFilter = 'A-Z';
+  List<Product> filterProduct = [];
 
   @override
   void dispose() {
     _focusNode.dispose();
     super.dispose();
+    filterProduct = List.from(widget.products);
+  }
+
+  void filterProducts(String query){
+    setState(() {
+      if(query.isEmpty){
+        filterProduct = List.from(widget.products);
+      }else{
+        filterProduct = widget.products.where((pro) => pro.name.toLowerCase().contains(query.toLowerCase())).toList();
+      }
+    });
+
+    widget.onSearchChanged(query);
   }
 
   @override

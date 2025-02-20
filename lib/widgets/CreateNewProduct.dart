@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:ui' as ui;
-import 'package:crop_image/crop_image.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:newprg/services/api_service.dart';
 import 'package:image_picker/image_picker.dart';
@@ -345,8 +344,8 @@ class _AddProductPageState extends State<AddProductPage> {
                             children: [
                               Image.memory(
                                 image,
-                                height: 150,
-                                width: 150,
+                                height: 200,
+                                width: 200,
                                 fit: BoxFit.cover,
                               ),
                               Positioned(
@@ -483,9 +482,12 @@ class _AddProductPageState extends State<AddProductPage> {
                   if (images.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 22.0),
-                      child: IconButton(
-                        icon: const Icon(Icons.add),
-                        onPressed: _pickImage,
+                      child: Container(
+                        margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.05),
+                        child: IconButton(
+                          icon: const Icon(Icons.add),
+                          onPressed: _pickImage,
+                        ),
                       ),
                     ),
                 ],

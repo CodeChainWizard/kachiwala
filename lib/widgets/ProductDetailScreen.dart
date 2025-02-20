@@ -10,6 +10,8 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
 
+import 'EditProductPage.dart';
+
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
 
@@ -103,18 +105,35 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
-              showDialog(
-                context: context,
-                builder:
-                    (context) => EditProductDialog(
-                      onProductUpdated: () {
-                        print('Product updated successfully!');
-                      },
-                      productData: widget.product,
-                    ),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditProductPage(
+                    productData: widget.product, // Pass product data
+                    onProductUpdated: () {
+                      print('Product updated successfully!');
+                    },
+                  ),
+                ),
               );
             },
           ),
+
+          // IconButton(
+          //   icon: const Icon(Icons.edit),
+          //   onPressed: () {
+          //     showDialog(
+          //       context: context,
+          //       builder:
+          //           (context) => EditProductDialog(
+          //             onProductUpdated: () {
+          //               print('Product updated successfully!');
+          //             },
+          //             productData: widget.product,
+          //           ),
+          //     );
+          //   },
+          // ),
         ],
       ),
       body: SingleChildScrollView(

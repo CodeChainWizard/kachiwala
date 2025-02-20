@@ -71,7 +71,7 @@ class _CropScreenState extends State<CropScreen> {
         case 4: // Top edge midpoint
           controller.crop = Rect.fromLTRB(
             currentCrop.left,
-            localPosition.dy.clamp(0.0, currentCrop.bottom - 10), // Prevent from going out of bounds
+            localPosition.dy.clamp(0.0, currentCrop.bottom - 10),
             currentCrop.right,
             currentCrop.bottom,
           );

@@ -37,6 +37,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   bool isSelectAll = false;
   bool productSelection = false;
   String? selectedProductId;
+  String? storedEmail = "";
 
   bool isMenuOpen = false;
 
@@ -53,6 +54,8 @@ class _HomePageState extends ConsumerState<HomePage> {
   String selectedProductType = '';
 
   List<String> selectedProductIds = [];
+
+
 
   void updateSelectedProductIds(List<String> updatedIds) {
     setState(() {
@@ -79,6 +82,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     _scrollController.addListener(_scrollListener);
     // _requestStoragePermission(context);
+    getStoredEmail();
   }
 
   Future<void> _requestStoragePermission(BuildContext context) async {
@@ -193,6 +197,22 @@ class _HomePageState extends ConsumerState<HomePage> {
     _fetchProducts();
   }
 
+  Future<void> _refreshProducts_RefreshIndi() async {
+    setState(() {
+      isSelectAll = false;
+      selectedProductIds = [];
+      ref.read(counterProvider.notifier).state = 0;
+      products.clear();
+      currentPage = 0;
+      _searchController.clear();
+
+      FocusScope.of(context).requestFocus(FocusNode());
+    });
+
+    _searchController.clear();
+    await _fetchProducts(); // Make sure _fetchProducts is async
+  }
+
   Future<void> _fetchProducts() async {
     try {
       setState(() {
@@ -272,34 +292,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         isSelectAll = selectedProductIds.length == products.length;
         ref.read(counterProvider.notifier).state = selectedProductIds.length;
       }
-      // isSelectAll = !isSelectAll;
-      // if (isSelectAll) {
-      //   selectedProductIds = products.map((product) => product.id).toList();
-      //
-      //   print("Select Product: $selectedProductIds");
-      //   ref.read(counterProvider.notifier).state = products.length;
-      // } else {
-      //   isSelectAll = false;
-      //   selectedProductIds = [];
-      //   ref.read(counterProvider.notifier).state = 0;
-      // }
     });
   }
-
-  // void _toggleSelectAll() {
-  //   setState(() {
-  //     isSelectAll = !isSelectAll;
-  //     if (isSelectAll) {
-  //       selectedProductIds =
-  //           filteredProducts.map((product) => product.id).toList();
-  //       ref.read(counterProvider.notifier).state = filteredProducts.length;
-  //     } else {
-  //       isSelectAll = false;
-  //       selectedProductIds = [];
-  //       ref.read(counterProvider.notifier).state = 0;
-  //     }
-  //   });
-  // }
 
   final FocusNode _searchFocusNode = FocusNode();
 
@@ -415,10 +409,16 @@ class _HomePageState extends ConsumerState<HomePage> {
     return selectedProductIds.length == products.length;
   }
 
+  Future<void> getStoredEmail() async {
+    SharedPreferences sp = await SharedPreferences.getInstance();
+    storedEmail = sp.getString("email");
+  }
+
+
   @override
   Widget build(BuildContext context) {
     var counterValue = ref.watch(counterProvider.state).state;
-
+    print("EMIALs:s  $storedEmail}");
     if (isLoading && products.isEmpty) {
       return Scaffold(
         appBar: AppBar(
@@ -438,7 +438,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ),
                     ),
                     content: Text(
-                      'Are you sure you want to logout?',
+                      // '$storedEmail',
+                      '$storedEmail  Are you sure you want to logout?',
                       style: TextStyle(fontSize: 16.0),
                     ),
                     shape: RoundedRectangleBorder(
@@ -449,9 +450,25 @@ class _HomePageState extends ConsumerState<HomePage> {
                         onPressed: () {
                           Navigator.of(context).pop(false); // Cancel logout
                         },
-                        child: Text(
-                          'No',
-                          style: TextStyle(color: Colors.red, fontSize: 16.0),
+                        child: TextButton(
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).pop(false);
+                          },
+                          child: Text(
+                            'No',
+                            style: TextStyle(
+                              color: Colors.white, // Text color
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.bold, // Bold text
+                            ),
+                          ),
                         ),
                       ),
                       TextButton(
@@ -460,7 +477,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         },
                         child: Text(
                           'Yes',
-                          style: TextStyle(color: Colors.green, fontSize: 16.0),
+                          style: TextStyle(color: Colors.blue, fontSize: 16.0),
                         ),
                       ),
                     ],
@@ -490,8 +507,26 @@ class _HomePageState extends ConsumerState<HomePage> {
                   onPressed: _toggleSelectAll,
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.blue),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 5,
+                      horizontal: 12,
+                    ),
+                    // Padding
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        10,
+                      ), // Rounded corners
+                    ),
+                    elevation: 5, // Shadow effect
                   ),
-                  child: Text(isAllSelected ? 'Deselect All' : 'Select All'),
+                  child: Text(
+                    isAllSelected ? 'Deselect All' : 'Select All',
+                    style: const TextStyle(
+                      fontSize: 16, // Text size
+                      fontWeight: FontWeight.bold, // Text weight
+                      color: Colors.blue, // Text color
+                    ),
+                  ),
                 )
                 : SizedBox(),
             IconButton(
@@ -506,6 +541,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               onSearchChanged: _onSearchChanged,
               refreshProducts: _refreshProducts,
               searchController: _searchController,
+              products: products,
             ),
             // Shimmer loading effect
             Expanded(
@@ -537,9 +573,14 @@ class _HomePageState extends ConsumerState<HomePage> {
       );
     }
 
+
+
+
     // Display product list when not loading
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
         title: const Text('Kachiwala'),
         leading: IconButton(
           icon: const Icon(Icons.logout),
@@ -555,32 +596,68 @@ class _HomePageState extends ConsumerState<HomePage> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  content: Text(
-                    'Are you sure you want to logout?',
-                    style: TextStyle(fontSize: 16.0),
+                  content: RichText(
+                    text: TextSpan(
+                      style: TextStyle(fontSize: 16.0, color: Colors.black),
+                      children: <TextSpan>[
+                        TextSpan(
+                          text: '"${storedEmail?.toUpperCase()}" ',
+                          style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w400),
+                        ),
+                        TextSpan(
+                          text: 'Are you sure you want to logout?',
+                          style: TextStyle(fontSize: 16.0),
+                        ),
+                      ],
+                    ),
                   ),
+
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.all(Radius.circular(15)),
                   ),
                   actions: [
                     TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop(false); // Cancel logout
-                      },
-                      child: Text(
-                        'No',
-                        style: TextStyle(color: Colors.red, fontSize: 16.0),
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                    ),
-                    TextButton(
                       onPressed: () async {
-                        Navigator.of(context).pop(true); // Confirm logout
+                        Navigator.of(context).pop(true);
                       },
                       child: Text(
-                        'Yes',
-                        style: TextStyle(color: Colors.green, fontSize: 16.0),
+                        'YES',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
+
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop(false);
+                      },
+                      child: Text(
+                        'NO',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
                   ],
                 );
               },
@@ -607,9 +684,32 @@ class _HomePageState extends ConsumerState<HomePage> {
                 onPressed: _toggleSelectAll,
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.blue),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 5,
+                    horizontal: 12,
+                  ),
+                  // Padding
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10), // Rounded corners
+                  ),
+                  elevation: 5, // Shadow effect
                 ),
-                child: Text(isAllSelected ? 'Deselect All' : 'Select All'),
+                child: Text(
+                  isAllSelected ? 'Deselect All' : 'Select All',
+                  style: const TextStyle(
+                    fontSize: 16, // Text size
+                    fontWeight: FontWeight.bold, // Text weight
+                    color: Colors.blue, // Text color
+                  ),
+                ),
               )
+              // ? OutlinedButton(
+              //   onPressed: _toggleSelectAll,
+              //   style: OutlinedButton.styleFrom(
+              //     side: const BorderSide(color: Colors.blue),
+              //   ),
+              //   child: Text(isAllSelected ? 'Deselect All' : 'Selectsss All'),
+              // )
               : SizedBox(),
 
           PopupMenuButton<String>(
@@ -663,121 +763,127 @@ class _HomePageState extends ConsumerState<HomePage> {
         ],
       ),
 
-      body: Padding(
-        padding: const EdgeInsets.all(5.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                // Search Bar
-                Expanded(
-                  child: CustomSearchBar(
-                    onSearchChanged: _onSearchChanged,
-                    refreshProducts: () {
-                      setState(() {
-                        filteredProducts = List.from(products);
-                      });
-                    },
-                    searchController: _searchController,
-                  ),
-                ),
-
-                // Dropdown for Filter
-                Padding(
-                  padding: const EdgeInsets.only(left: 10.0),
-                  child: Container(
-                    // decoration: BoxDecoration(
-                    //   border: Border.all(
-                    //     color: Colors.grey,
-                    //     width: 1.0
-                    //   ),
-                    //   borderRadius: BorderRadius.circular(5.0)
-                    // ),
-                    child: DropdownButton<String>(
-                      value: selectedFilter,
-
-                      onChanged: (String? newFilter) {
-                        if (newFilter != null) {
-                          setState(() {
-                            selectedFilter = newFilter;
-                          });
-                          _applyFilter(newFilter);
-                        }
+      body: RefreshIndicator(
+        onRefresh: _refreshProducts_RefreshIndi,
+        child: Padding(
+          padding: const EdgeInsets.all(5.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  // Search Bar
+                  Expanded(
+                    child: CustomSearchBar(
+                      onSearchChanged: _onSearchChanged,
+                      refreshProducts: () {
+                        setState(() {
+                          filteredProducts = List.from(products);
+                        });
                       },
-                      items:
-                          [
-                            'A-Z',
-                            'Z-A', // Added Z-A option
-                            'Price: High to Low',
-                            'Price: Low to High',
-                          ].map((String filter) {
-                            return DropdownMenuItem<String>(
-                              value: filter,
-                              child: Text(filter),
-                            );
-                          }).toList(),
+                      products: products,
+                      searchController: _searchController,
                     ),
                   ),
-                ),
-              ],
-            ),
 
-            // Product Grid View
-            Expanded(
-              child:
-                  filteredProducts.isEmpty
-                      ? const Center(
-                        child: Text(
-                          "No Products Found",
-                          style: TextStyle(
-                            fontSize: 22,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      )
-                      : GridView.builder(
-                        controller: _scrollController,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              mainAxisSpacing: 8.0,
-                              crossAxisSpacing: 8.0,
-                              childAspectRatio: 3 / 4,
-                            ),
-                        itemCount:
-                            filteredProducts.length + (isLoading ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index == filteredProducts.length && isLoading) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
-                            );
+                  // Dropdown for Filter
+                  Padding(
+                    padding: const EdgeInsets.only(left: 10.0),
+                    child: Container(
+                      // decoration: BoxDecoration(
+                      //   border: Border.all(
+                      //     color: Colors.grey,
+                      //     width: 1.0
+                      //   ),
+                      //   borderRadius: BorderRadius.circular(5.0)
+                      // ),
+                      child: DropdownButton<String>(
+                        value: selectedFilter,
+
+                        onChanged: (String? newFilter) {
+                          if (newFilter != null) {
+                            setState(() {
+                              selectedFilter = newFilter;
+                            });
+                            _applyFilter(newFilter);
                           }
-                          final product = filteredProducts[index];
-                          return ProductCard(
-                            product: product,
-                            index: index,
-                            isGlobalSelected: isSelectAll,
-                            isSelectAll: isSelectAll,
-                            onTap: () {
-                              setState(() {
-                                if (!selectedProductIds.contains(product.id)) {
-                                  selectedProductIds.add(product.id);
-                                } else {
-                                  selectedProductIds.remove(product.id);
-                                }
-                              });
-                            },
-                            updateCounter: updateCounter,
-                            selectedProductIds: selectedProductIds,
-                            // updateSelectedProductIds: updateSelectedProductIds,
-                          );
                         },
+                        items:
+                            [
+                              'A-Z',
+                              'Z-A', // Added Z-A option
+                              'Price: High to Low',
+                              'Price: Low to High',
+                            ].map((String filter) {
+                              return DropdownMenuItem<String>(
+                                value: filter,
+                                child: Text(filter),
+                              );
+                            }).toList(),
                       ),
-            ),
-          ],
+                    ),
+                  ),
+                ],
+              ),
+
+              // Product Grid View
+              Expanded(
+                child:
+                    filteredProducts.isEmpty
+                        ? const Center(
+                          child: Text(
+                            "No Products Found",
+                            style: TextStyle(
+                              fontSize: 22,
+                              color: Colors.grey,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        )
+                        : GridView.builder(
+                          controller: _scrollController,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 8.0,
+                                crossAxisSpacing: 8.0,
+                                childAspectRatio: 3 / 4,
+                              ),
+                          itemCount:
+                              filteredProducts.length + (isLoading ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index == filteredProducts.length && isLoading) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
+                            final product = filteredProducts[index];
+                            return ProductCard(
+                              product: product,
+                              index: index,
+                              isGlobalSelected: isSelectAll,
+                              isSelectAll: isSelectAll,
+                              onTap: () {
+                                setState(() {
+                                  if (!selectedProductIds.contains(
+                                    product.id,
+                                  )) {
+                                    selectedProductIds.add(product.id);
+                                  } else {
+                                    selectedProductIds.remove(product.id);
+                                  }
+                                });
+                              },
+                              updateCounter: updateCounter,
+                              selectedProductIds: selectedProductIds,
+                              // updateSelectedProductIds: updateSelectedProductIds,
+                            );
+                          },
+                        ),
+              ),
+            ],
+          ),
         ),
       ),
 
@@ -937,320 +1043,4 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
     );
   }
-
-  // @override
-  // Widget build(BuildContext context) {
-  //   var counterValue = ref.watch(counterProvider.state).state;
-  //
-  //   if (isLoading && products.isEmpty) {
-  //     return Scaffold(
-  //       appBar: AppBar(
-  //         title: const Text('Product List'),
-  //         leading: IconButton(
-  //           icon: const Icon(Icons.logout),
-  //           onPressed: () async {
-  //             SharedPreferences prefs = await SharedPreferences.getInstance();
-  //             await prefs.clear();
-  //
-  //             await clearCache();
-  //
-  //             await setLoginStatus(false);
-  //             Navigator.pushReplacement(
-  //               context,
-  //               MaterialPageRoute(builder: (context) => LoginPage()),
-  //             );
-  //           },
-  //           tooltip: 'Logout',
-  //         ),
-  //         actions: [
-  //           filteredProducts.isNotEmpty
-  //               ? OutlinedButton(
-  //                 onPressed: _toggleSelectAll,
-  //                 style: OutlinedButton.styleFrom(
-  //                   side: const BorderSide(color: Colors.blue),
-  //                 ),
-  //                 child: Text(
-  //                   isSelectAll ? 'Deselect All' : 'Select All',
-  //                   // isSelectAll
-  //                   //     ? 'Deselect All${selectedProductIds.isNotEmpty ? ' (${selectedProductIds.length} selected)' : ''}'
-  //                   //     : 'Select All${selectedProductIds.isNotEmpty ? ' (${selectedProductIds.length} selected)' : ''}',
-  //                 ),
-  //               )
-  //               : SizedBox(),
-  //           IconButton(
-  //             icon: const Icon(Icons.refresh),
-  //             onPressed: _refreshProducts,
-  //           ),
-  //         ],
-  //       ),
-  //       body: Column(
-  //         children: [
-  //           CustomSearchBar(
-  //             onSearchChanged: _onSearchChanged,
-  //             refreshProducts: _refreshProducts,
-  //             searchController: _searchController,
-  //           ),
-  //           const Center(child: CircularProgressIndicator()),
-  //         ],
-  //       ),
-  //     );
-  //   }
-  //
-  //   return Scaffold(
-  //     appBar: AppBar(
-  //       title: const Text('Product List'),
-  //       leading: IconButton(
-  //         icon: const Icon(Icons.logout),
-  //         onPressed: () async {
-  //           SharedPreferences prefs = await SharedPreferences.getInstance();
-  //           await prefs.clear();
-  //
-  //           await clearCache();
-  //
-  //           await setLoginStatus(false);
-  //           Navigator.pushReplacement(
-  //             context,
-  //             MaterialPageRoute(builder: (context) => LoginPage()),
-  //           );
-  //         },
-  //         tooltip: 'Logout',
-  //       ),
-  //       actions: [
-  //         filteredProducts.isNotEmpty
-  //             ? OutlinedButton(
-  //               onPressed: _toggleSelectAll,
-  //               style: OutlinedButton.styleFrom(
-  //                 side: const BorderSide(color: Colors.blue),
-  //               ),
-  //               child: Text(
-  //                 isSelectAll ? 'Deselect All' : 'Select All',
-  //                 // isSelectAll
-  //                 //     ? 'Deselect All${selectedProductIds.isNotEmpty ? ' (${selectedProductIds.length} selected)' : ''}'
-  //                 //     : 'Select All${selectedProductIds.isNotEmpty ? ' (${selectedProductIds.length} selected)' : ''}',
-  //               ),
-  //             )
-  //             : SizedBox(),
-  //         IconButton(
-  //           icon: const Icon(Icons.refresh),
-  //           onPressed: _refreshProducts,
-  //         ),
-  //       ],
-  //     ),
-  //     body: Column(
-  //       children: [
-  //         CustomSearchBar(
-  //           onSearchChanged: _onSearchChanged,
-  //           refreshProducts: () {
-  //             setState(() {
-  //               filteredProducts = List.from(products);
-  //             });
-  //           },
-  //           searchController: _searchController,
-  //         ),
-  //         Expanded(
-  //           child:
-  //               filteredProducts.isEmpty
-  //                   ? const Center(
-  //                     child: Text(
-  //                       "No Products Found",
-  //                       style: TextStyle(
-  //                         fontSize: 22,
-  //                         color: Colors.grey,
-  //                         fontWeight: FontWeight.bold,
-  //                       ),
-  //                     ),
-  //                   )
-  //                   : GridView.builder(
-  //                     controller: _scrollController,
-  //                     gridDelegate:
-  //                         const SliverGridDelegateWithFixedCrossAxisCount(
-  //                           crossAxisCount: 2,
-  //                           mainAxisSpacing: 8.0,
-  //                           crossAxisSpacing: 8.0,
-  //                           childAspectRatio: 3 / 4,
-  //                         ),
-  //                     itemCount: filteredProducts.length + (isLoading ? 1 : 0),
-  //                     itemBuilder: (context, index) {
-  //                       if (index == filteredProducts.length && isLoading) {
-  //                         return const Center(
-  //                           child: CircularProgressIndicator(),
-  //                         );
-  //                       }
-  //                       final product = filteredProducts[index];
-  //                       return ProductCard(
-  //                         product: product,
-  //                         index: index,
-  //                         isGlobalSelected: isSelectAll,
-  //                         isSelectAll: isSelectAll,
-  //                         onTap: () {
-  //                           setState(() {
-  //                             if (!selectedProductIds.contains(product.id)) {
-  //                               selectedProductIds.add(product.id);
-  //                             } else {
-  //                               selectedProductIds.remove(product.id);
-  //                             }
-  //                           });
-  //                         },
-  //                         updateCounter: updateCounter,
-  //                         selectedProductIds: selectedProductIds,
-  //                       );
-  //                     },
-  //                   ),
-  //         ),
-  //       ],
-  //     ),
-  //     floatingActionButton:
-  //         counterValue > 0
-  //             ? SpeedDial(
-  //               animatedIcon: AnimatedIcons.menu_close,
-  //               animatedIconTheme: IconThemeData(size: 30.0),
-  //               curve: Curves.easeInOut,
-  //               onOpen: () => setState(() => isMenuOpen = true),
-  //               onClose: () => setState(() => isMenuOpen = false),
-  //               backgroundColor: Colors.blueAccent,
-  //               foregroundColor: Colors.white,
-  //               elevation: 10.0,
-  //               shape: CircleBorder(),
-  //               children: [
-  //                 SpeedDialChild(
-  //                   child: Icon(Icons.share),
-  //                   backgroundColor: Colors.green,
-  //                   label: 'Share',
-  //                   labelStyle: TextStyle(fontSize: 16.0, color: Colors.white),
-  //                   labelBackgroundColor: Colors.green,
-  //                   onTap: () async {
-  //                     if (counterValue > 0) {
-  //                       List<Product> selectedProducts =
-  //                           filteredProducts
-  //                               .where(
-  //                                 (product) =>
-  //                                     selectedProductIds.contains(product.id),
-  //                               )
-  //                               .toList();
-  //
-  //                       if (selectedProducts.isNotEmpty) {
-  //                         final shareProduct = ShareProduct();
-  //                         await shareProduct.shareAllProducts(selectedProducts);
-  //
-  //                         setState(() {
-  //                           isMenuOpen = false;
-  //                           selectedProductIds = [];
-  //                         });
-  //                       }
-  //                     }
-  //                   },
-  //                 ),
-  //
-  //                 SpeedDialChild(
-  //                   child: Icon(Icons.delete),
-  //                   backgroundColor: Colors.red,
-  //                   label: 'Delete',
-  //                   labelStyle: TextStyle(
-  //                     fontSize: 16.0,
-  //                     color: Colors.white,
-  //                     fontWeight: FontWeight.bold,
-  //                   ),
-  //                   labelBackgroundColor: Colors.redAccent,
-  //                   onTap: () async {
-  //                     if (counterValue > 0 && selectedProductIds.isNotEmpty) {
-  //                       bool? confirmDelete = await showDialog(
-  //                         context: context,
-  //                         builder: (BuildContext context) {
-  //                           return AlertDialog(
-  //                             title: Text(
-  //                               'Confirm Deletion',
-  //                               style: TextStyle(
-  //                                 fontSize: 20.0,
-  //                                 fontWeight: FontWeight.bold,
-  //                                 color: Colors.red,
-  //                               ),
-  //                             ),
-  //                             content: Text(
-  //                               'Are you sure you want to delete the selected products?',
-  //                               style: TextStyle(
-  //                                 fontSize: 16.0,
-  //                                 color: Colors.black,
-  //                               ),
-  //                             ),
-  //                             shape: RoundedRectangleBorder(
-  //                               borderRadius: BorderRadius.all(
-  //                                 Radius.circular(15),
-  //                               ),
-  //                             ),
-  //                             backgroundColor: Colors.white,
-  //                             actionsPadding: EdgeInsets.symmetric(
-  //                               horizontal: 16.0,
-  //                             ),
-  //                             // Padding around actions
-  //                             actions: [
-  //                               TextButton(
-  //                                 onPressed: () {
-  //                                   Navigator.of(context).pop(false);
-  //                                 },
-  //                                 child: Text(
-  //                                   'No',
-  //                                   style: TextStyle(
-  //                                     color: Colors.red,
-  //                                     fontSize: 16.0,
-  //                                     fontWeight: FontWeight.bold,
-  //                                   ),
-  //                                 ),
-  //                               ),
-  //                               TextButton(
-  //                                 onPressed: () {
-  //                                   Navigator.of(context).pop(true);
-  //                                 },
-  //                                 child: Text(
-  //                                   'Yes',
-  //                                   style: TextStyle(
-  //                                     color:
-  //                                         Colors.green, // Green color for "Yes"
-  //                                     fontSize: 16.0,
-  //                                     fontWeight: FontWeight.bold, // Bold "Yes"
-  //                                   ),
-  //                                 ),
-  //                               ),
-  //                             ],
-  //                           );
-  //                         },
-  //                       );
-  //
-  //                       if (confirmDelete == true) {
-  //                         try {
-  //                           var response = await ApiService.deleteProducts(
-  //                             selectedProductIds,
-  //                           );
-  //                           if (response.statusCode == 200) {
-  //                             setState(() {
-  //                               selectedProductIds = [];
-  //                               counterValue = 0;
-  //                             });
-  //                           }
-  //                         } catch (e) {
-  //                           ScaffoldMessenger.of(context).showSnackBar(
-  //                             SnackBar(content: Text('An error occurred: $e')),
-  //                           );
-  //                         }
-  //                       }
-  //                     }
-  //                   },
-  //                 ),
-  //               ],
-  //             )
-  //             : FloatingActionButton(
-  //               onPressed: () {
-  //                 showDialog(
-  //                   context: context,
-  //                   builder:
-  //                       (_) => AddProductDialog(
-  //                         onProductAdded: _refreshProducts,
-  //                         isLoading: isLoading,
-  //                       ),
-  //                 );
-  //               },
-  //               backgroundColor: Colors.blue,
-  //               child: Icon(Icons.add, color: Colors.white),
-  //             ),
-  //   );
-  // }
 }
