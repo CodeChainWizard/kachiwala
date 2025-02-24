@@ -47,17 +47,22 @@ class _EditProductPageState extends State<EditProductPage> {
 
   void _initializeControllers() {
     nameController = TextEditingController(text: widget.productData.name);
-    designNoController = TextEditingController(text: widget.productData.designNo);
+    designNoController = TextEditingController(
+      text: widget.productData.designNo,
+    );
     meterController = TextEditingController(text: widget.productData.meter);
     sizeController = TextEditingController(text: widget.productData.size);
-    priceController = TextEditingController(text: widget.productData.rate.toString());
+    priceController = TextEditingController(
+      text: widget.productData.rate.toString(),
+    );
     typeController = TextEditingController(text: widget.productData.type);
     packingController = TextEditingController(text: widget.productData.packing);
     colorController = TextEditingController(text: widget.productData.color);
   }
 
   void _loadExistingImages() {
-    if (widget.productData.imagePaths != null && widget.productData.imagePaths!.isNotEmpty) {
+    if (widget.productData.imagePaths != null &&
+        widget.productData.imagePaths!.isNotEmpty) {
       setState(() {
         imageUrls = List.from(widget.productData.imagePaths!);
       });
@@ -66,7 +71,9 @@ class _EditProductPageState extends State<EditProductPage> {
 
   Future<void> _pickImage() async {
     try {
-      final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+      final pickedFile = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+      );
       if (pickedFile != null) {
         final imageBytes = await pickedFile.readAsBytes();
         final compressedImage = await _compressImage(imageBytes);
@@ -98,17 +105,22 @@ class _EditProductPageState extends State<EditProductPage> {
   }
 
   Future<void> _updateProduct() async {
-    if (nameController.text.isEmpty || (imageUrls.isEmpty && newImages.isEmpty)) {
-      _showDialog('Error', 'Please fill in all fields and select at least one image.');
+    if (nameController.text.isEmpty ||
+        (imageUrls.isEmpty && newImages.isEmpty)) {
+      _showDialog(
+        'Error',
+        'Please fill in all fields and select at least one image.',
+      );
       return;
     }
 
     setState(() => isLoading = true);
 
     try {
-      List<MultipartFile> multipartImages = newImages.map((image) {
-        return MultipartFile.fromBytes(image, filename: 'image.jpg');
-      }).toList();
+      List<MultipartFile> multipartImages =
+          newImages.map((image) {
+            return MultipartFile.fromBytes(image, filename: 'image.jpg');
+          }).toList();
 
       FormData formData = FormData.fromMap({
         "id": widget.productData.id,
@@ -124,7 +136,10 @@ class _EditProductPageState extends State<EditProductPage> {
         "existingImages": imageUrls,
       });
 
-      var response = await ApiService.updateProduct(widget.productData.id.toString(), formData);
+      var response = await ApiService.updateProduct(
+        widget.productData.id.toString(),
+        formData,
+      );
       if (response.statusCode == 200) {
         widget.onProductUpdated();
         Navigator.pop(context, true);
@@ -157,7 +172,12 @@ class _EditProductPageState extends State<EditProductPage> {
         return AlertDialog(
           title: Text(title, style: TextStyle(color: Colors.red)),
           content: Text(message),
-          actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: Text('OK'))],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('OK'),
+            ),
+          ],
         );
       },
     );
@@ -166,7 +186,11 @@ class _EditProductPageState extends State<EditProductPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Edit Product")),
+      appBar: AppBar(
+        title: Text("Edit Product", style: TextStyle(color: Colors.white)),
+        backgroundColor: Color(0xFF1D3557),
+        iconTheme: IconThemeData(color: Colors.white),
+      ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16.0),
         child: Column(
@@ -189,8 +213,9 @@ class _EditProductPageState extends State<EditProductPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
+                  backgroundColor: Color(0xFF1D3557),
                 ),
-                child: Text('Select Image'),
+                child: Text('Select Image', style: TextStyle(color: Colors.white)),
               ),
             ),
 
@@ -213,8 +238,6 @@ class _EditProductPageState extends State<EditProductPage> {
                   );
                 }).toList(),
 
-
-
                 ...newImages.asMap().entries.map((entry) {
                   final index = entry.key;
                   final image = entry.value;
@@ -225,7 +248,9 @@ class _EditProductPageState extends State<EditProductPage> {
                   Padding(
                     padding: const EdgeInsets.only(top: 22.0),
                     child: Container(
-                      margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.05),
+                      margin: EdgeInsets.only(
+                        top: MediaQuery.of(context).size.height * 0.05,
+                      ),
                       child: IconButton(
                         icon: const Icon(Icons.add),
                         onPressed: _pickImage,
@@ -243,10 +268,14 @@ class _EditProductPageState extends State<EditProductPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
+                backgroundColor: Color(0xFF1D3557),
               ),
-              child: isLoading
-                  ? CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
-                  : Text("Update Product"),
+              child:
+                  isLoading
+                      ? CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      )
+                      : Text("Update Product", style: TextStyle(color: Colors.white),),
             ),
           ],
         ),
@@ -254,13 +283,23 @@ class _EditProductPageState extends State<EditProductPage> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, {bool isNumeric = false}) {
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label, {
+    bool isNumeric = false,
+  }) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 8.0),
       child: TextField(
         controller: controller,
-        keyboardType: isNumeric ? TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
-        decoration: InputDecoration(labelText: label, border: OutlineInputBorder()),
+        keyboardType:
+            isNumeric
+                ? TextInputType.numberWithOptions(decimal: true)
+                : TextInputType.text,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(),
+        ),
       ),
     );
   }
@@ -272,9 +311,9 @@ class _EditProductPageState extends State<EditProductPage> {
           onTap: () {
             showDialog(
               context: context,
-              builder: (context) => Dialog(
-                child: Image.memory(image, fit: BoxFit.contain),
-              ),
+              builder:
+                  (context) =>
+                      Dialog(child: Image.memory(image, fit: BoxFit.contain)),
             );
           },
           child: Image.memory(
@@ -305,7 +344,6 @@ class _EditProductPageState extends State<EditProductPage> {
               padding: EdgeInsets.all(4),
               child: Icon(Icons.remove, color: Colors.white, size: 16),
             ),
-
           ),
         ),
         Positioned(
@@ -316,11 +354,12 @@ class _EditProductPageState extends State<EditProductPage> {
               final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => CropScreen(
-                    image: image,
-                    index: index,
-                    originalUrl: url,
-                  ),
+                  builder:
+                      (context) => CropScreen(
+                        image: image,
+                        index: index,
+                        originalUrl: url,
+                      ),
                 ),
               );
               if (result != null) {
@@ -349,7 +388,6 @@ class _EditProductPageState extends State<EditProductPage> {
             ),
           ),
         ),
-
       ],
     );
   }
@@ -395,12 +433,13 @@ class _CropScreenState extends State<CropScreen> {
     try {
       final Uint8List croppedImageBytes = await _getCroppedImageBytes();
 
-      final Uint8List? compressedImage = await FlutterImageCompress.compressWithList(
-        croppedImageBytes,
-        minWidth: 300,
-        minHeight: 300,
-        quality: 20,
-      );
+      final Uint8List? compressedImage =
+          await FlutterImageCompress.compressWithList(
+            croppedImageBytes,
+            minWidth: 300,
+            minHeight: 300,
+            quality: 20,
+          );
 
       if (compressedImage == null || compressedImage.isEmpty) {
         throw Exception('Failed to compress cropped image');

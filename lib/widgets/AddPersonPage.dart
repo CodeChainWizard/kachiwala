@@ -96,8 +96,9 @@ class _AddPersonPageState extends State<AddPersonPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Person', style: TextStyle(color: Colors.black),),
-        backgroundColor: Colors.transparent,
+        title: const Text('Add Person', style: TextStyle(color: Colors.white),),
+        backgroundColor: Color(0xFF1D3557),
+        iconTheme: IconThemeData(color: Colors.white),
       ),
       body: SafeArea(
         child: Padding(
@@ -165,7 +166,7 @@ class _AddPersonPageState extends State<AddPersonPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8.0),
                   ),
-                  backgroundColor: Colors.black,
+                  backgroundColor: Color(0xFF1D3557),
                 ),
                 child: const Text(
                   'Add Person',

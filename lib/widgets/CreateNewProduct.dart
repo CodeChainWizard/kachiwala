@@ -3,11 +3,9 @@ import 'dart:ui' as ui;
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:newprg/services/api_service.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import 'CropScreen.dart';
 
 class AddProductPage extends StatefulWidget {
@@ -57,7 +55,6 @@ class _AddProductPageState extends State<AddProductPage> {
   List<Uint8List?> images = [];
   Uint8List? compressedImage;
 
-
   Future<void> _pickImage() async {
     try {
       final pickedFile = await ImagePicker().pickImage(
@@ -106,7 +103,6 @@ class _AddProductPageState extends State<AddProductPage> {
   }
 
   Future<void> _addProduct() async {
-
     if (Name.text.isEmpty ||
         DesignNo.text.isEmpty ||
         Meter.text.isEmpty ||
@@ -125,9 +121,10 @@ class _AddProductPageState extends State<AddProductPage> {
     setState(() => isLoading = true);
 
     try {
-      List<MultipartFile> multipartImages = images.map((image) {
-        return MultipartFile.fromBytes(image!, filename: 'image.jpg');
-      }).toList();
+      List<MultipartFile> multipartImages =
+          images.map((image) {
+            return MultipartFile.fromBytes(image!, filename: 'image.jpg');
+          }).toList();
 
       FormData formData = FormData.fromMap({
         "name": Name.text,
@@ -159,7 +156,6 @@ class _AddProductPageState extends State<AddProductPage> {
       setState(() => isLoading = false);
     }
   }
-
 
   // Future<void> _addProduct() async {
   //   if (Name.text.isEmpty ||
@@ -242,10 +238,14 @@ class _AddProductPageState extends State<AddProductPage> {
           ),
           content: Text(
             message,
-            style: const TextStyle(fontSize: 16), // Slightly larger text for better readability
+            style: const TextStyle(
+              fontSize: 16,
+            ), // Slightly larger text for better readability
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15), // Rounded corners for the dialog
+            borderRadius: BorderRadius.circular(
+              15,
+            ), // Rounded corners for the dialog
           ),
           actions: [
             TextButton(
@@ -253,7 +253,8 @@ class _AddProductPageState extends State<AddProductPage> {
               child: const Text(
                 'Got it!',
                 style: TextStyle(
-                  color: Colors.blue, // Change button text color to blue for contrast
+                  color: Colors.blue,
+                  // Change button text color to blue for contrast
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -267,8 +268,11 @@ class _AddProductPageState extends State<AddProductPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text("Create New Product")),
+      appBar: AppBar(
+        title: Text("Create New Product", style: TextStyle(color: Colors.white),),
+        backgroundColor: ui.Color(0xFF1D3557),
+        iconTheme: IconThemeData(color: Colors.white),
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -276,13 +280,27 @@ class _AddProductPageState extends State<AddProductPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildTextField(Name, "Name *", focusNode: nameFocusNode),
-              _buildTextField(DesignNo, "DesignNo *", focusNode: designNoFocusNode),
-              _buildTextField(Meter, "Meter *", isNumeric: true, focusNode: meterFocusNode),
+              _buildTextField(
+                DesignNo,
+                "DesignNo *",
+                focusNode: designNoFocusNode,
+              ),
+              _buildTextField(
+                Meter,
+                "Meter *",
+                isNumeric: true,
+                focusNode: meterFocusNode,
+              ),
               _buildTextField(Size, "Size *", focusNode: sizeFocusNode),
-              _buildTextField(Price, "Price *", isNumeric: true, focusNode: priceFocusNode),
+              _buildTextField(
+                Price,
+                "Price *",
+                isNumeric: true,
+                focusNode: priceFocusNode,
+              ),
               _buildTextField(Type, "Type *", focusNode: typeFocusNode),
               _buildTextField(Color, "Color *", focusNode: colorFocusNode),
-              _buildTextField(Paking, "Packing *",focusNode: packingFocusNode),
+              _buildTextField(Paking, "Packing *", focusNode: packingFocusNode),
               // _buildTextField(packingController, "Packing *"),
               // _buildTextField(rateController, "Rate *", isNumeric: true),
               // _buildTextField(meterController, "Meter *", isNumeric: true),
@@ -292,23 +310,31 @@ class _AddProductPageState extends State<AddProductPage> {
                 child: ElevatedButton(
                   onPressed: images.isNotEmpty ? null : _pickImage,
                   style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white, backgroundColor: Colors.blue, // Text color
-                    padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30), // Padding
+                    foregroundColor: Colors.white,
+                    backgroundColor: ui.Color(0xFF1D3557),
+                    // Text color
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 15,
+                      horizontal: 30,
+                    ),
+                    // Padding
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10), // Rounded corners
+                      borderRadius: BorderRadius.circular(
+                        10,
+                      ), // Rounded corners
                     ),
                     elevation: 5, // Shadow effect
                   ),
                   child: const Text(
                     'Select Image',
                     style: TextStyle(
-                      fontSize: 16, // Text size
-                      fontWeight: FontWeight.bold, // Text weight
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+
                     ),
                   ),
                 ),
               ),
-
 
               // Padding(
               //   padding: const EdgeInsets.only(top: 12.0, bottom: 10.0),
@@ -317,7 +343,6 @@ class _AddProductPageState extends State<AddProductPage> {
               //     child: const Text('Select Image'),
               //   ),
               // ),
-
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
@@ -484,7 +509,9 @@ class _AddProductPageState extends State<AddProductPage> {
                     Padding(
                       padding: const EdgeInsets.only(top: 22.0),
                       child: Container(
-                        margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.05),
+                        margin: EdgeInsets.only(
+                          top: MediaQuery.of(context).size.height * 0.05,
+                        ),
                         child: IconButton(
                           icon: const Icon(Icons.add),
                           onPressed: _pickImage,
@@ -499,7 +526,7 @@ class _AddProductPageState extends State<AddProductPage> {
                 onPressed: isLoading ? null : _addProduct,
                 style: ElevatedButton.styleFrom(
                   foregroundColor: Colors.white,
-                  backgroundColor: Colors.blue,
+                  backgroundColor: ui.Color(0xFF1D3557),
                   // Text color
                   padding: const EdgeInsets.symmetric(
                     vertical: 15,
@@ -536,7 +563,8 @@ class _AddProductPageState extends State<AddProductPage> {
   Widget _buildTextField(
     TextEditingController controller,
     String label, {
-    bool isNumeric = false, required FocusNode focusNode,
+    bool isNumeric = false,
+    required FocusNode focusNode,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -555,4 +583,3 @@ class _AddProductPageState extends State<AddProductPage> {
     );
   }
 }
-

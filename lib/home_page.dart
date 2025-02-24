@@ -55,6 +55,10 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   List<String> selectedProductIds = [];
 
+  OverlayEntry? _overlayEntry;
+  final LayerLink _layerLink = LayerLink();
+  bool isDropdownOpen = false;
+
   void updateSelectedProductIds(List<String> updatedIds) {
     setState(() {
       selectedProductIds = updatedIds;
@@ -81,6 +85,92 @@ class _HomePageState extends ConsumerState<HomePage> {
     _scrollController.addListener(_scrollListener);
     // _requestStoragePermission(context);
     getStoredEmail();
+  }
+
+  void toggleDropdown() {
+    if (isDropdownOpen) {
+      _overlayEntry?.remove();
+    } else {
+      _overlayEntry = _createOverlayEntry();
+      Overlay.of(context).insert(_overlayEntry!);
+    }
+    setState(() {
+      isDropdownOpen = !isDropdownOpen;
+    });
+  }
+
+  OverlayEntry _createOverlayEntry() {
+    RenderBox renderBox = context.findRenderObject() as RenderBox;
+    Offset position = renderBox.localToGlobal(Offset.zero);
+    double width = renderBox.size.width;
+
+    return OverlayEntry(
+      builder:
+          (context) => Stack(
+            children: [
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: toggleDropdown,
+                child: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  color: Colors.transparent,
+                ),
+              ),
+              Positioned(
+                left: position.dx,
+                top: position.dy + renderBox.size.height + 5,
+                width: width,
+                child: Material(
+                  elevation: 4,
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children:
+                          [
+                            'A-Z',
+                            'Z-A',
+                            'Price: High to Low',
+                            'Price: Low to High',
+                          ].map((String filter) {
+                            return InkWell(
+                              onTap: () {
+                                setState(() {
+                                  selectedFilter = filter;
+                                  _applyFilter(filter);
+                                });
+                                toggleDropdown();
+                              },
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                  vertical: 10,
+                                  horizontal: 8,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    filter,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+    );
   }
 
   Future<void> _requestStoragePermission(BuildContext context) async {
@@ -418,10 +508,12 @@ class _HomePageState extends ConsumerState<HomePage> {
     print("EMIALs:s  $storedEmail}");
     if (isLoading && products.isEmpty) {
       return Scaffold(
+        backgroundColor: Colors.white,
         appBar: AppBar(
-          title: const Text('Kachiwala'),
+          backgroundColor: Color(0xFF1D3557),
+          title: const Text('Kachiwala', style: TextStyle(color: Colors.white)),
           leading: IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () async {
               bool? confirmLogout = await showDialog(
                 context: context,
@@ -434,50 +526,74 @@ class _HomePageState extends ConsumerState<HomePage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    content: Text(
-                      // '$storedEmail',
-                      '$storedEmail  Are you sure you want to logout?',
-                      style: TextStyle(fontSize: 16.0),
+                    content: RichText(
+                      text: TextSpan(
+                        style: TextStyle(fontSize: 16.0, color: Colors.black),
+                        children: <TextSpan>[
+                          TextSpan(
+                            text: '"${storedEmail?.toUpperCase()}" ',
+                            style: TextStyle(
+                              fontSize: 18.0,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                          TextSpan(
+                            text: 'Are you sure you want to logout?',
+                            style: TextStyle(fontSize: 16.0),
+                          ),
+                        ],
+                      ),
                     ),
+
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.all(Radius.circular(15)),
                     ),
                     actions: [
                       TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop(false); // Cancel logout
-                        },
-                        child: TextButton(
-                          style: TextButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            padding: EdgeInsets.symmetric(
-                              vertical: 10,
-                              horizontal: 20,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          padding: EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 20,
                           ),
-                          onPressed: () {
-                            Navigator.of(context).pop(false);
-                          },
-                          child: Text(
-                            'No',
-                            style: TextStyle(
-                              color: Colors.white, // Text color
-                              fontSize: 16.0,
-                              fontWeight: FontWeight.bold, // Bold text
-                            ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () async {
+                          Navigator.of(context).pop(true);
+                        },
+                        child: Text(
+                          'YES',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18.0,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
+
                       TextButton(
-                        onPressed: () async {
-                          Navigator.of(context).pop(true); // Confirm logout
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          padding: EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 20,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pop(false);
                         },
                         child: Text(
-                          'Yes',
-                          style: TextStyle(color: Colors.blue, fontSize: 16.0),
+                          'NO',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18.0,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -500,7 +616,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             },
             tooltip: 'Logout',
           ),
-
           actions: [
             filteredProducts.isNotEmpty
                 ? OutlinedButton(
@@ -524,61 +639,375 @@ class _HomePageState extends ConsumerState<HomePage> {
                     style: const TextStyle(
                       fontSize: 16, // Text size
                       fontWeight: FontWeight.bold, // Text weight
-                      color: Colors.blue, // Text color
+                      color: Colors.white, // Text color
                     ),
                   ),
                 )
+                // ? OutlinedButton(
+                //   onPressed: _toggleSelectAll,
+                //   style: OutlinedButton.styleFrom(
+                //     side: const BorderSide(color: Colors.blue),
+                //   ),
+                //   child: Text(isAllSelected ? 'Deselect All' : 'Selectsss All'),
+                // )
                 : SizedBox(),
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: _refreshProducts,
-            ),
-          ],
-        ),
-        body: Column(
-          children: [
-            CustomSearchBar(
-              onSearchResultsUpdated: (filteredList) {
-                setState(() {
-                  filteredProducts = filteredList;
-                });
-                print("FILTER PRODUCT: $filteredProducts");
-              },
-              refreshProducts: () {
-                setState(() {
-                  filteredProducts = List.from(products);
-                });
-              },
-              products: products,
-              searchController: _searchController,
-            ),
-            // Shimmer loading effect
-            Expanded(
-              child: Shimmer.fromColors(
-                baseColor: Colors.grey.shade300,
-                highlightColor: Colors.grey.shade500,
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 8.0,
-                    crossAxisSpacing: 8.0,
-                    childAspectRatio: 3 / 4,
-                  ),
-                  itemCount: 6,
-                  itemBuilder: (context, index) {
-                    return Container(
-                      margin: EdgeInsets.all(8.0),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8.0),
+
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: Colors.white),
+              onSelected: (String choice) async {
+                if (choice == 'Refresh') {
+                  _refreshProducts();
+                } else if (choice == 'Add Person') {
+                  SharedPreferences sp = await SharedPreferences.getInstance();
+                  String? storedEmail = sp.getString("email");
+                  String? storedPassword = sp.getString("password");
+
+                  if (storedEmail == "narayan" &&
+                      storedPassword == "kachiwala") {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => AddPersonPage()),
+                    );
+                    if (result == true) {
+                      _refreshProducts();
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Access Denied: Unauthorized User"),
                       ),
                     );
-                  },
-                ),
-              ),
+                  }
+                }
+              },
+              itemBuilder:
+                  (BuildContext context) => <PopupMenuEntry<String>>[
+                    const PopupMenuItem<String>(
+                      value: 'Refresh',
+                      child: ListTile(
+                        leading: Icon(Icons.refresh, color: Colors.blue),
+                        title: Text('Refresh'),
+                      ),
+                    ),
+                    const PopupMenuItem<String>(
+                      value: 'Add Person',
+                      child: ListTile(
+                        leading: Icon(Icons.person_add, color: Colors.green),
+                        title: Text('Add New Person'),
+                      ),
+                    ),
+                  ],
             ),
+
+            // IconButton(
+            //   icon: const Icon(Icons.refresh),
+            //   onPressed: _refreshProducts,
+            // ),
           ],
         ),
+
+        body: RefreshIndicator(
+          onRefresh: _refreshProducts_RefreshIndi,
+          child: Padding(
+            padding: const EdgeInsets.all(5.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    // Search Bar
+                    Expanded(
+                      child: CustomSearchBar(
+                        onSearchResultsUpdated: (filteredList) {
+                          setState(() {
+                            filteredProducts = filteredList;
+                          });
+                          print("FILTER PRODUCT: $filteredProducts");
+                        },
+                        refreshProducts: () {
+                          setState(() {
+                            filteredProducts = List.from(products);
+                          });
+                        },
+                        products: products,
+                        searchController: _searchController,
+                      ),
+                    ),
+
+                    // Dropdown for Filter
+                    Padding(
+                      padding: EdgeInsets.only(
+                        bottom: 8.0,
+                        top: 8.0,
+                        right: 3.0,
+                      ),
+                      child: SizedBox(
+                        height: 35,
+                        width: 35,
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 3.0),
+                          child: PopupMenuButton<String>(
+                            icon: Icon(
+                              Icons.filter_list,
+                              color: Colors.black,
+                              size: 20,
+                            ),
+                            padding: EdgeInsets.zero,
+                            // Removes extra padding
+                            constraints: BoxConstraints(),
+                            // Prevents unnecessary expansion
+                            onSelected: (String newFilter) {
+                              setState(() {
+                                selectedFilter = newFilter;
+                              });
+                              _applyFilter(newFilter);
+                            },
+                            itemBuilder: (BuildContext context) {
+                              return [
+                                'A-Z',
+                                'Z-A',
+                                'Price: High to Low',
+                                'Price: Low to High',
+                              ].map((String filter) {
+                                return PopupMenuItem<String>(
+                                  value: filter,
+                                  child: Text(
+                                    filter,
+                                    style: TextStyle(color: Colors.black54),
+                                  ),
+                                );
+                              }).toList();
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Product Grid View
+                Expanded(
+                  child:
+                      filteredProducts.isEmpty
+                          ? const Center(
+                            child: Text(
+                              "No Products Found",
+                              style: TextStyle(
+                                fontSize: 22,
+                                color: Colors.grey,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          )
+                          : GridView.builder(
+                            controller: _scrollController,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  mainAxisSpacing: 8.0,
+                                  crossAxisSpacing: 8.0,
+                                  childAspectRatio: 3 / 4,
+                                ),
+                            itemCount:
+                                filteredProducts.length + (isLoading ? 1 : 0),
+                            itemBuilder: (context, index) {
+                              if (index == filteredProducts.length &&
+                                  isLoading) {
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              }
+                              final product = filteredProducts[index];
+                              return ProductCard(
+                                product: product,
+                                index: index,
+                                isGlobalSelected: isSelectAll,
+                                isSelectAll: isSelectAll,
+                                onTap: () {
+                                  setState(() {
+                                    if (!selectedProductIds.contains(
+                                      product.id,
+                                    )) {
+                                      selectedProductIds.add(product.id);
+                                    } else {
+                                      selectedProductIds.remove(product.id);
+                                    }
+                                  });
+                                },
+                                updateCounter: updateCounter,
+                                selectedProductIds: selectedProductIds,
+                                // updateSelectedProductIds: updateSelectedProductIds,
+                              );
+                            },
+                          ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        floatingActionButton:
+            counterValue > 0
+                ? SpeedDial(
+                  animatedIcon: AnimatedIcons.menu_close,
+                  animatedIconTheme: IconThemeData(size: 30.0),
+                  curve: Curves.easeInOut,
+                  onOpen: () => setState(() => isMenuOpen = true),
+                  onClose: () => setState(() => isMenuOpen = false),
+                  backgroundColor: Color(0xFF1D3557),
+                  foregroundColor: Colors.white,
+                  elevation: 10.0,
+                  shape: CircleBorder(),
+                  children: [
+                    SpeedDialChild(
+                      child: Icon(Icons.share, color: Colors.white),
+                      backgroundColor: Colors.green,
+                      // label: 'Share',
+                      labelStyle: TextStyle(
+                        fontSize: 16.0,
+                        color: Colors.white,
+                      ),
+                      labelBackgroundColor: Colors.green,
+                      onTap: () async {
+                        if (counterValue > 0) {
+                          List<Product> selectedProducts =
+                              filteredProducts
+                                  .where(
+                                    (product) =>
+                                        selectedProductIds.contains(product.id),
+                                  )
+                                  .toList();
+
+                          if (selectedProducts.isNotEmpty) {
+                            final shareProduct = ShareProduct();
+                            await shareProduct.shareAllProducts(
+                              selectedProducts,
+                            );
+
+                            setState(() {
+                              isMenuOpen = false;
+                              selectedProductIds = [];
+                            });
+                          }
+                        }
+                      },
+                    ),
+                    SpeedDialChild(
+                      child: Icon(Icons.delete, color: Colors.white),
+                      backgroundColor: Colors.red,
+                      // label: 'Delete',
+                      labelStyle: TextStyle(
+                        fontSize: 16.0,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      labelBackgroundColor: Colors.redAccent,
+                      onTap: () async {
+                        if (counterValue > 0 && selectedProductIds.isNotEmpty) {
+                          bool? confirmDelete = await showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: Text(
+                                  'Confirm Deletion',
+                                  style: TextStyle(
+                                    fontSize: 20.0,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                                content: Text(
+                                  'Are you sure you want to delete the selected products?',
+                                  style: TextStyle(
+                                    fontSize: 16.0,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(15),
+                                  ),
+                                ),
+                                backgroundColor: Colors.white,
+                                actionsPadding: EdgeInsets.symmetric(
+                                  horizontal: 16.0,
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop(false);
+                                    },
+                                    child: Text(
+                                      'No',
+                                      style: TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 16.0,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop(true);
+                                    },
+                                    child: Text(
+                                      'Yes',
+                                      style: TextStyle(
+                                        color: Colors.green,
+                                        fontSize: 16.0,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+
+                          if (confirmDelete == true) {
+                            try {
+                              var response = await ApiService.deleteProducts(
+                                selectedProductIds,
+                              );
+                              if (response.statusCode == 200) {
+                                setState(() {
+                                  selectedProductIds = [];
+                                  counterValue = 0;
+                                });
+                              }
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('An error occurred: $e'),
+                                ),
+                              );
+                            }
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                )
+                : FloatingActionButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder:
+                          (_) => AddProductPage(
+                            onProductAdded: _refreshProducts,
+                            // isLoading: isLoading,
+                          ),
+
+                      // builder: (_) => AddProductDialog(
+                      //   onProductAdded: _refreshProducts,
+                      //   isLoading: isLoading,
+                      // ),
+                    );
+                  },
+                  backgroundColor: Color(0xFF1D3557),
+                  child: Icon(Icons.add, color: Colors.white),
+                ),
       );
     }
 
@@ -812,17 +1241,19 @@ class _HomePageState extends ConsumerState<HomePage> {
                     child: SizedBox(
                       height: 35,
                       width: 35,
-                      // decoration: BoxDecoration(
-                      //   border: Border.all(color: Colors.grey, width: 1.0),
-                      //   borderRadius: BorderRadius.circular(50.0),
-                      //   color: Colors.white, // Background color
-                      // ),
+
                       child: Padding(
                         padding: EdgeInsets.only(top: 3.0),
                         child: PopupMenuButton<String>(
-                          icon: Icon(Icons.filter_list, color: Colors.black, size: 20),
-                          padding: EdgeInsets.zero, // Removes extra padding
-                          constraints: BoxConstraints(), // Prevents unnecessary expansion
+                          icon: Icon(
+                            Icons.filter_list,
+                            color: Colors.black,
+                            size: 20,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: BoxConstraints(),
+                          // Prevents unnecessary expansion
+                          offset: Offset(0, 50),
                           onSelected: (String newFilter) {
                             setState(() {
                               selectedFilter = newFilter;
@@ -849,7 +1280,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ),
                     ),
                   ),
-
                 ],
               ),
 
@@ -927,7 +1357,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 shape: CircleBorder(),
                 children: [
                   SpeedDialChild(
-                    child: Icon(Icons.share, color: Colors.white,),
+                    child: Icon(Icons.share, color: Colors.white),
                     backgroundColor: Colors.green,
                     // label: 'Share',
                     labelStyle: TextStyle(fontSize: 16.0, color: Colors.white),
@@ -1065,7 +1495,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   );
                 },
                 backgroundColor: Color(0xFF1D3557),
-                child: Icon(Icons.add, color: Colors.white,),
+                child: Icon(Icons.add, color: Colors.white),
               ),
     );
   }

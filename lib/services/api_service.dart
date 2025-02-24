@@ -7,8 +7,11 @@ import 'dart:async';
 
 class ApiService {
   // static const String _baseUrl = 'http://db.pluserp.live/api/products';
-  static const String _baseUrl_GET = 'http://103.251.16.248:5000/api/products/test';
-  static const String _baseUrl_POST = 'http://103.251.16.248:5000/api/product';
+  // static const String _baseUrl_GET = 'http://103.251.16.248:5000/api/products/test';
+  // static const String _baseUrl_POST = 'http://103.251.16.248:5000/api/product';
+
+  static const String _baseUrl_GET = 'http://192.168.1.21:5000/api/products/test';
+  static const String _baseUrl_POST = 'http://192.168.1.21:5000/api/product';
 
 
   // ?take&skip

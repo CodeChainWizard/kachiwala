@@ -139,7 +139,7 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 24),
               // Title
               const Text(
-                'Log in',
+                'Sign In',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -190,10 +190,10 @@ class _LoginPageState extends State<LoginPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8.0),
                   ),
-                  backgroundColor: Colors.black,
+                  backgroundColor: Color(0xFF1D3557),
                 ),
                 child: const Text(
-                  'Continue',
+                  'Login',
                   style: TextStyle(color: Colors.white),
                 ),
               ),

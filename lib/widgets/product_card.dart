@@ -304,32 +304,36 @@ class _ProductCardState extends ConsumerState<ProductCard> {
 
                               SizedBox(height: 15.0),
                               Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  RichText(
-                                    text: TextSpan(
-                                      children: [
-                                        const TextSpan(
-                                          text: 'Price(₹) : ',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.black,
+                                  Flexible(
+                                    child: Text.rich(
+                                      TextSpan(
+                                        children: [
+                                          const TextSpan(
+                                            text: 'Price(₹) : ',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.black,
+                                            ),
                                           ),
-                                        ),
-                                        TextSpan(
-                                          text: '${widget.product.rate} Rs',
-                                          style: TextStyle(
-                                            fontSize: isSmallScreen ? 14 : 16,
-                                            color: Colors.grey[600],
+                                          TextSpan(
+                                            text: '${widget.product.rate} Rs',
+                                            style: TextStyle(
+                                              fontSize: isSmallScreen ? 14 : 16,
+                                              color: Colors.grey[600],
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis, // Show "..." when text is too long
                                     ),
                                   ),
                                 ],
                               ),
+
 
                               Row(
                                 mainAxisAlignment:
