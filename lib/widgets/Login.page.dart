@@ -1,12 +1,15 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:newprg/services/api_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../home_page.dart';
 import '../main.dart';
+import 'package:http/http.dart' as http;
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -20,13 +23,57 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   File? compressedImage;
-  bool _isLoading = true; // To track if the image is still loading
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     loadAndCompressImage();
   }
+
+  void _navigateToHomePage() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please Enter Both Username and Password')),
+      );
+      return;
+    }
+
+    bool isLoggedIn = await ApiService.login(email, password);
+
+    if (isLoggedIn) {
+      onLoginSuccess(context, email, password);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid Credentials')),
+      );
+    }
+  }
+
+  // --- static Email and Password login --- (narayan, kachiwala)
+  // void _navigateToHomePage() {
+  //   final email = emailController.text.trim();
+  //   final password = passwordController.text.trim();
+  //
+  //   if (email.isEmpty || password.isEmpty) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(content: Text('Please Enter Both Username and Password')),
+  //     );
+  //     return;
+  //   }
+  //
+  //   if (email == 'narayan' && password == 'kachiwala') {
+  //     onLoginSuccess(context, email, password);
+  //   } else {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(content: Text('Invalid Credentials')),
+  //     );
+  //   }
+  // }
+
 
   void onLoginSuccess(BuildContext context, String email, String password) async {
     await setLoginStatus(true);
@@ -40,25 +87,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void _navigateToHomePage() {
-    final email = emailController.text.trim();
-    final password = passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please Enter Both Username and Password')),
-      );
-      return;
-    }
-
-    if (email == 'narayan' && password == 'kachiwala') {
-      onLoginSuccess(context, email, password);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid Credentials')),
-      );
-    }
-  }
 
   Future<void> loadAndCompressImage() async {
     try {
@@ -113,7 +142,6 @@ class _LoginPageState extends State<LoginPage> {
       return null;
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -203,4 +231,6 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
+
+
 }

@@ -10,14 +10,13 @@ class ApiService {
   // static const String _baseUrl_GET = 'http://103.251.16.248:5000/api/products/test';
   // static const String _baseUrl_POST = 'http://103.251.16.248:5000/api/product';
 
-  static const String _baseUrl_GET = 'http://192.168.1.21:5000/api/products/test';
+  static const String _baseUrl_GET =
+      'http://192.168.1.21:5000/api/products/test';
   static const String _baseUrl_POST = 'http://192.168.1.21:5000/api/product';
-
 
   // ?take&skip
   static Future<List<Product>> fetchProducts() async {
     try {
-      // Modify the URL to fetch all products without pagination
       final url = Uri.parse('$_baseUrl_GET');
 
       print("Fetching all products from URL: $url");
@@ -37,7 +36,33 @@ class ApiService {
       }
     } catch (e) {
       print('Error fetching products: $e');
-      throw e; // Propagate error so calling code can handle it.
+      throw e;
+    }
+  }
+
+  static Future<bool> login(String email, String password) async {
+    try {
+      final url = Uri.parse("$_baseUrl_GET/login");
+      print("Send Login URL: ${url}");
+
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"email": email, "password": password}),
+      );
+
+      if(response.statusCode == 200){
+        final responseData = jsonDecode(response.body);
+        print("Response Data: $responseData");
+
+        return responseData['success'] = true;
+      }else{
+        print("Login failed with status: ${response.statusCode}");
+        return false;
+      }
+    } catch (e) {
+      print("Error while Login: $e");
+      return false;
     }
   }
 
@@ -72,22 +97,19 @@ class ApiService {
     Dio dio = Dio();
 
     try {
-
       final response = await dio.post(
         _baseUrl_POST,
         data: formData,
-        options: Options(
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        ),
+        options: Options(headers: {'Content-Type': 'multipart/form-data'}),
       );
 
       // Log the response for debugging
       print("Response: ${response.statusCode}");
 
       if (response.statusCode != 201) {
-        throw Exception('Failed to add product. Status Code: ${response.statusCode}');
+        throw Exception(
+          'Failed to add product. Status Code: ${response.statusCode}',
+        );
       }
 
       return response;
@@ -103,20 +125,16 @@ class ApiService {
     try {
       final response = await dio.delete(
         '$_baseUrl_POST/delete',
-        data: {
-          'productIds': productIds,
-        },
-        options: Options(
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        ),
+        data: {'productIds': productIds},
+        options: Options(headers: {'Content-Type': 'application/json'}),
       );
 
       print("Response: ${response.statusCode}");
 
       if (response.statusCode != 200) {
-        throw Exception('Failed to delete products. Status Code: ${response.statusCode}');
+        throw Exception(
+          'Failed to delete products. Status Code: ${response.statusCode}',
+        );
       }
 
       return response;
@@ -179,25 +197,26 @@ class ApiService {
     }
   }
 
-  static Future<Response> updateProduct(String productId, FormData formData) async {
+  static Future<Response> updateProduct(
+    String productId,
+    FormData formData,
+  ) async {
     Dio dio = Dio();
 
     try {
       final response = await dio.put(
         '$_baseUrl_POST/$productId',
         data: formData,
-        options: Options(
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        ),
+        options: Options(headers: {'Content-Type': 'multipart/form-data'}),
       );
 
       print("Response: ${response.statusCode}");
       print("Response Data: ${response.data}");
 
       if (response.statusCode != 200) {
-        throw Exception('Failed to update product. Status Code: ${response.statusCode}');
+        throw Exception(
+          'Failed to update product. Status Code: ${response.statusCode}',
+        );
       }
 
       return response;
@@ -209,23 +228,22 @@ class ApiService {
 }
 
 // static Future<void> addProduct(Map<String, dynamic> product) async {
-  //   try {
-  //     final response = await http.post(
-  //       Uri.parse(_baseUrl_POST),
-  //       headers: {'Content-Type': 'application/json'},
-  //       body: jsonEncode(product),
-  //
-  //     );
-  //
-  //     print("Response: ${response.statusCode}");
-  //
-  //     if (response.statusCode != 201) {
-  //       final errorBody = jsonDecode(response.body);
-  //       throw Exception('Failed to add product: ${errorBody['message']}');
-  //     }
-  //   } catch (e) {
-  //     print('Error adding product: $e');
-  //     rethrow;
-  //   }
-  // }
-
+//   try {
+//     final response = await http.post(
+//       Uri.parse(_baseUrl_POST),
+//       headers: {'Content-Type': 'application/json'},
+//       body: jsonEncode(product),
+//
+//     );
+//
+//     print("Response: ${response.statusCode}");
+//
+//     if (response.statusCode != 201) {
+//       final errorBody = jsonDecode(response.body);
+//       throw Exception('Failed to add product: ${errorBody['message']}');
+//     }
+//   } catch (e) {
+//     print('Error adding product: $e');
+//     rethrow;
+//   }
+// }

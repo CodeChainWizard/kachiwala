@@ -173,6 +173,48 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     return path;
   }
 
+  Future<bool> _showDeleteConfirmationDialog(BuildContext context) async {
+    return await showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text("Confirm Delete"),
+              content: Text("Are you sure you want to delete this product?"),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: Text("Cancel"),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: Text("Delete", style: TextStyle(color: Colors.red)),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+  }
+
+  // --- Temp Delete ---
+  void _deleteProduct(Product product) {
+    // setState(() {
+    //   widget.product.removeWhere((p) => p.id == product.id);
+    // });
+
+    SnackBar(
+      content: Text("${widget.product.type} deleted!"),
+      duration: Duration(seconds: 2),
+      action: SnackBarAction(
+        label: "UNDO",
+        onPressed: () {
+
+        },
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     // print("Counter value in riverpods: $counterValue");
@@ -304,7 +346,8 @@ class _ProductCardState extends ConsumerState<ProductCard> {
 
                               SizedBox(height: 15.0),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Flexible(
                                     child: Text.rich(
@@ -321,19 +364,21 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                                           TextSpan(
                                             text: '${widget.product.rate} Rs',
                                             style: TextStyle(
-                                              fontSize: isSmallScreen ? 14 : 16,
+                                              fontSize:
+                                                  isSmallScreen ? 14 : 16,
                                               color: Colors.grey[600],
                                             ),
                                           ),
                                         ],
                                       ),
                                       maxLines: 1,
-                                      overflow: TextOverflow.ellipsis, // Show "..." when text is too long
+                                      overflow:
+                                          TextOverflow
+                                              .ellipsis, // Show "..." when text is too long
                                     ),
                                   ),
                                 ],
                               ),
-
 
                               Row(
                                 mainAxisAlignment:
@@ -376,16 +421,23 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                                       try {
                                         // Get the selected products
                                         final selectedProducts =
-                                            widget.selectedProductIds.isNotEmpty
+                                            widget
+                                                    .selectedProductIds
+                                                    .isNotEmpty
                                                 ? widget.selectedProductIds
-                                                    .map((id) => widget.product)
+                                                    .map(
+                                                      (id) => widget.product,
+                                                    )
                                                     .toList()
                                                 : [widget.product];
 
                                         // Iterate through the selected products
-                                        for (var product in selectedProducts) {
+                                        for (var product
+                                            in selectedProducts) {
                                           if (product.imagePaths != null &&
-                                              product.imagePaths!.isNotEmpty) {
+                                              product
+                                                  .imagePaths!
+                                                  .isNotEmpty) {
                                             if (product.imagePaths!.length ==
                                                 1) {
                                               // Share normally if there's only one image

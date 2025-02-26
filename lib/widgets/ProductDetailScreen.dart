@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:newprg/home_page.dart';
+import 'package:newprg/services/api_service.dart';
 import '../models/product.dart';
-import 'EditProductDialog.dart';
 import 'dart:typed_data';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
@@ -31,8 +31,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     super.initState();
     compressedImages = [];
     _compressAndLoadImages();
-  }
 
+    // print("PRODUCT ID: ${widget.product.id}");
+  }
 
   void _compressAndLoadImages() async {
     try {
@@ -89,9 +90,32 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
-
   String _resolveImageUrl(String path) {
     return path.replaceAll(r'\\', '/');
+  }
+
+  Future<void> _deleteProduct(BuildContext context) async {
+      try{
+        http.Response response = (await ApiService.deleteProducts([widget.product.id])) as http.Response;
+
+        if(response.statusCode == 200){
+          Navigator.of(context).pop(); // Close dialog
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomePage(),
+            ),
+          );
+        }else{
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed to delete product")),
+          );
+        }
+      }catch(e){
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
+      }
   }
 
   @override
@@ -102,21 +126,61 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       appBar: AppBar(
         title: Text(widget.product.name),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => EditProductPage(
-                    productData: widget.product, // Pass product data
-                    onProductUpdated: () {
-                      print('Product updated successfully!');
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.edit),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditProductPage(
+                        productData: widget.product, // Pass product data
+                        onProductUpdated: () {
+                          print('Product updated successfully!');
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete),
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: Text("Confirm Deletion"),
+                        content: Text("Are you sure you want to delete this item?"),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop(); // Close the dialog
+                            },
+                            child: Text("Cancel"),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              _deleteProduct(context);
+                              // Navigator.pushReplacement(
+                              //   context,
+                              //   MaterialPageRoute(
+                              //     builder: (context) => HomePage(),
+                              //   ),
+                              // );
+                            },
+                            child: Text("Delete", style: TextStyle(color: Colors.red)),
+                          ),
+                        ],
+                      );
                     },
-                  ),
-                ),
-              );
-            },
+                  );
+                },
+              ),
+
+            ],
           ),
 
           // IconButton(
