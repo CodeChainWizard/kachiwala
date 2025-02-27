@@ -23,6 +23,8 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
   List<Product> filteredProducts = [];
   bool isMenuOpen = false;
 
+  bool isTextFieldFocused = false;
+
   // Dropdown values
   String selectedFilter = 'All';
   final List<String> filterOptions = ['All', 'Type', 'Price', 'Meter', 'Color'];
@@ -31,6 +33,12 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
   void initState() {
     super.initState();
     filteredProducts = List.from(widget.products);
+
+    _focusNode.addListener(() {
+      setState(() {
+        isTextFieldFocused = _focusNode.hasFocus;
+      });
+    });
   }
 
   @override
@@ -78,7 +86,11 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
       behavior: HitTestBehavior.translucent,
       onTap: () {
         FocusScope.of(context).unfocus();
-        isMenuOpen = !isMenuOpen;
+        setState(() {
+          isMenuOpen = !isMenuOpen;
+          isTextFieldFocused = false;
+        });
+
       },
       child: Padding(
         padding: const EdgeInsets.only(bottom: 8.0, top: 7.0),
@@ -161,7 +173,7 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
                           ), // Color when not focused
                         ),
                         suffixIcon:
-                            widget.searchController.text.isNotEmpty
+                            isTextFieldFocused || widget.searchController.text.isNotEmpty
                                 ? IconButton(
                                   icon: Icon(Icons.clear),
                                   onPressed: () {
@@ -173,6 +185,11 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
                                 )
                                 : Icon(Icons.search, color: Colors.black54),
                       ),
+                      onTap: (){
+                        setState(() {
+                          isTextFieldFocused = true;
+                        });
+                      },
                       onChanged: (value) {
                         filterProducts(value);
                       },

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:newprg/home_page.dart';
 import 'package:newprg/services/api_service.dart';
 import '../models/product.dart';
@@ -9,6 +10,7 @@ import 'dart:typed_data';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
+import '../services/product.riverPod.dart';
 import 'EditProductPage.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -27,6 +29,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   late Product _product;
 
+  late ScaffoldMessengerState _scaffoldMessenger;
+
   @override
   void initState() {
     super.initState();
@@ -34,6 +38,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _compressAndLoadImages();
     _product = widget.product;
     // print("PRODUCT ID: ${widget.product.id}");
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _scaffoldMessenger = ScaffoldMessenger.of(context);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   void _compressAndLoadImages() async {
@@ -50,16 +65,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               decodedBytes = base64Decode(imagePath.split(',').last);
             } else {
               final file = File(imagePath);
+              if (!await file.exists()) {
+                print("File does not exist: $imagePath");
+                continue;
+              }
               decodedBytes = await file.readAsBytes();
             }
 
-            // Compress the image
             final compressedImage = await FlutterImageCompress.compressWithList(
               decodedBytes,
               minWidth: 150,
               minHeight: 150,
               quality: 5,
-              // format: CompressFormat.jpeg,
             );
 
             if (compressedImage != null) {
@@ -103,22 +120,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       ]);
 
       if (response.statusCode == 200) {
-        Navigator.of(context).pop(); // Close dialog
+        Navigator.of(context).pop();
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomePage()),
         );
+
         return true;
       } else {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Failed to delete product")));
+
         return false;
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
       return false;
     }
   }
@@ -133,11 +155,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final imagePaths = widget.product.imagePaths ?? [];
-
     return Scaffold(
       appBar: AppBar(
         title: Text(_product.name),
@@ -147,23 +167,47 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               IconButton(
                 icon: const Icon(Icons.edit),
                 onPressed: () async {
-                  final updatedProduct = await Navigator.push(
+                  final updatedProduct = await Navigator.push<Product>(
                     context,
                     MaterialPageRoute(
                       builder:
-                          (context) => EditProductPage(
-                            productData:_product,
-                          ),
+                          (context) => EditProductPage(productData: _product),
                     ),
                   );
 
-                  if (updatedProduct != null && mounted) {
+                  if (updatedProduct != null && context.mounted) {
+                    final ref = ProviderScope.containerOf(context);
+                    ref
+                        .read(productProvider.notifier)
+                        .updateProduct(updatedProduct);
+
                     setState(() {
                       _product = updatedProduct;
                     });
                   }
                 },
               ),
+
+              // IconButton(
+              //   icon: const Icon(Icons.edit),
+              //   onPressed: () async {
+              //     final updatedProduct = await Navigator.push(
+              //       context,
+              //       MaterialPageRoute(
+              //         builder:
+              //             (context) => EditProductPage(productData: _product),
+              //       ),
+              //     );
+              //
+              //     if (updatedProduct != null && mounted) {
+              //       context.read(productProvider.notifier).updateProduct(updatedProduct);
+              //       // setState(() {
+              //       //   _product = updatedProduct;
+              //       // });
+              //     }
+              //   },
+              // ),
+
               IconButton(
                 icon: const Icon(Icons.delete),
                 onPressed: () {
@@ -173,7 +217,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       return AlertDialog(
                         title: Text("Confirm Deletion"),
                         content: Text(
-                          "Are you sure you want to delete this item?",
+                          "Are you sure you want to delete this item('${widget.product.name}')?",
                         ),
                         actions: [
                           TextButton(
@@ -183,23 +227,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             child: Text("Cancel"),
                           ),
                           TextButton(
-                            onPressed: () async{
-                              Navigator.of(context).pop();
+                            onPressed: () async {
+                              Navigator.of(
+                                context,
+                              ).pop(); // Close the dialog first
+
                               bool isDeleted = await _deleteProduct(context);
-                              if(isDeleted){
+
+                              if (isDeleted && context.mounted) {
                                 Navigator.pushReplacement(
                                   context,
-                                  MaterialPageRoute(builder: (context) => HomePage()),
+                                  MaterialPageRoute(
+                                    builder: (context) => HomePage(),
+                                  ),
                                 );
                               }
-                              // Navigator.pushReplacement(
-                              //   context,
-                              //   MaterialPageRoute(
-                              //     builder: (context) => HomePage(),
-                              //   ),
-                              // );
-
                             },
+
                             child: Text(
                               "Delete",
                               style: TextStyle(color: Colors.red),

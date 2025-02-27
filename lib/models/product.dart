@@ -52,6 +52,23 @@ class Product {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'code': code,
+      'designNo': designNo,
+      'name': name,
+      'description': description,
+      'size': size,
+      'color': color,
+      'packing': packing,
+      'rate': rate,
+      'meter': meter,
+      'imagePaths': imagePaths ?? [],
+    };
+  }
+
   Product copyWith({
     String? id,
     String? type,

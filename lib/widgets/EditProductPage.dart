@@ -128,14 +128,15 @@ class _EditProductPageState extends State<EditProductPage> {
         "type": typeController.text,
         "color": colorController.text,
         "packing": packingController.text,
-        "images": multipartImages,
         "existingImages": imageUrls,
+        "images": multipartImages,
       });
 
       var response = await ApiService.updateProduct(
         widget.productData.id.toString(),
         formData,
       );
+
       if (response.statusCode == 200) {
         Product updatedProduct = Product(
           id: widget.productData.id,
@@ -152,7 +153,7 @@ class _EditProductPageState extends State<EditProductPage> {
           imagePaths: [...imageUrls, ...newImages.map((_) => 'new_image_url')],
         );
 
-        Navigator.pop(context, updatedProduct); // ✅ Return updated product
+        Navigator.pop(context, updatedProduct);
       } else {
         _showDialog('Error', 'Update failed. Please try again.');
       }
@@ -193,31 +194,113 @@ class _EditProductPageState extends State<EditProductPage> {
     );
   }
 
+  Future<bool> _onWillPop() async {
+    return (await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Discard Changes?'),
+        content: Text('Are you sure you want to exit without saving?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Exit'),
+          ),
+        ],
+      ),
+    )) ?? false;
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Edit Product", style: TextStyle(color: Colors.white)),
-        backgroundColor: Color(0xFF1D3557),
-        iconTheme: IconThemeData(color: Colors.white),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            _buildTextField(nameController, "Name"),
-            _buildTextField(designNoController, "Design No"),
-            _buildTextField(meterController, "Meter", isNumeric: true),
-            _buildTextField(sizeController, "Size"),
-            _buildTextField(priceController, "Price", isNumeric: true),
-            _buildTextField(typeController, "Type"),
-            _buildTextField(colorController, "Color"),
-            _buildTextField(packingController, "Packing"),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16.0),
-              child: ElevatedButton(
-                onPressed: newImages.isNotEmpty ? null : _pickImage,
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text("Edit Product", style: TextStyle(color: Colors.white)),
+          backgroundColor: Color(0xFF1D3557),
+          iconTheme: IconThemeData(color: Colors.white),
+        ),
+        body: SingleChildScrollView(
+          padding: EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              _buildTextField(nameController, "Name"),
+              _buildTextField(designNoController, "Design No"),
+              _buildTextField(meterController, "Meter", isNumeric: true),
+              _buildTextField(sizeController, "Size"),
+              _buildTextField(priceController, "Price", isNumeric: true),
+              _buildTextField(typeController, "Type"),
+              _buildTextField(colorController, "Color"),
+              _buildTextField(packingController, "Packing"),
+      
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: ElevatedButton(
+                  onPressed: newImages.isNotEmpty ? null : _pickImage,
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    backgroundColor: Color(0xFF1D3557),
+                  ),
+                  child: Text(
+                    'Select Image',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+      
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                alignment: WrapAlignment.center,
+                children: [
+                  ...imageUrls.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final url = entry.value;
+                    return FutureBuilder<Uint8List?>(
+                      future: _fetchImageFromUrl(url),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return CircularProgressIndicator();
+                        }
+                        return _buildImageWidget(snapshot.data!, index, url);
+                      },
+                    );
+                  }).toList(),
+      
+                  ...newImages.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final image = entry.value;
+                    return _buildImageWidget(image, index, '');
+                  }).toList(),
+      
+                  if (imageUrls.isNotEmpty || newImages.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 22.0),
+                      child: Container(
+                        margin: EdgeInsets.only(
+                          top: MediaQuery.of(context).size.height * 0.05,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.add),
+                          onPressed: _pickImage,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+      
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: isLoading ? null : _updateProduct,
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                   shape: RoundedRectangleBorder(
@@ -225,75 +308,18 @@ class _EditProductPageState extends State<EditProductPage> {
                   ),
                   backgroundColor: Color(0xFF1D3557),
                 ),
-                child: Text(
-                  'Select Image',
-                  style: TextStyle(color: Colors.white),
-                ),
+                child:
+                    isLoading
+                        ? CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        )
+                        : Text(
+                          "Update Product",
+                          style: TextStyle(color: Colors.white),
+                        ),
               ),
-            ),
-
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              alignment: WrapAlignment.center,
-              children: [
-                ...imageUrls.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final url = entry.value;
-                  return FutureBuilder<Uint8List?>(
-                    future: _fetchImageFromUrl(url),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return CircularProgressIndicator();
-                      }
-                      return _buildImageWidget(snapshot.data!, index, url);
-                    },
-                  );
-                }).toList(),
-
-                ...newImages.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final image = entry.value;
-                  return _buildImageWidget(image, index, '');
-                }).toList(),
-
-                if (imageUrls.isNotEmpty || newImages.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 22.0),
-                    child: Container(
-                      margin: EdgeInsets.only(
-                        top: MediaQuery.of(context).size.height * 0.05,
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.add),
-                        onPressed: _pickImage,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: isLoading ? null : _updateProduct,
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                backgroundColor: Color(0xFF1D3557),
-              ),
-              child:
-                  isLoading
-                      ? CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      )
-                      : Text(
-                        "Update Product",
-                        style: TextStyle(color: Colors.white),
-                      ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

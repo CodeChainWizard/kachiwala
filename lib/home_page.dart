@@ -76,25 +76,61 @@ class _HomePageState extends ConsumerState<HomePage> {
   final TextEditingController _searchController = TextEditingController();
 
   String selectedFilter = "A-Z";
+  int count = 0;
 
   @override
   void initState() {
     super.initState();
     _fetchProducts();
+
+    // Future.microtask(() => _fetchProducts());
+    print("Init");
     // _fetchProducts(skip: 0, take: itemsPerPage);
     _initializePrefs();
 
     _scrollController.addListener(_scrollListener);
     // _requestStoragePermission(context);
     getStoredEmail();
+    _loadFilter();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _fetchProducts();
+  void _loadFilter() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      selectedFilter = prefs.getString('selectedFilter') ?? 'A-Z';
+    });
+
   }
 
+  // bool _isFetched = false;
+  //
+  // @override
+  // void didChangeDependencies() {
+  //   super.didChangeDependencies();
+  //   print("didChangeDependencies called");
+  //
+  //   if (!_isFetched) {
+  //     _isFetched = true;
+  //     Future.microtask(() async {
+  //       print("Fetching products...");
+  //       await _fetchProducts();
+  //       if (mounted) {
+  //         setState(() {});
+  //         print("setState called after fetching products");
+  //       }
+  //     });
+  //   }
+  // }
+
+
+
+  // @override
+  // void didChangeDependencies() {
+  //   super.didChangeDependencies();
+  //   _fetchProducts();
+  //   print("DID");
+  //   setState(() {});
+  // }
 
   void toggleDropdown() {
     if (isDropdownOpen) {
@@ -320,11 +356,14 @@ class _HomePageState extends ConsumerState<HomePage> {
 
       print("API RESPONSE: $fetchedProducts");
 
-      setState(() {
-        products = fetchedProducts;
-        filteredProducts = List.from(products);
-        isLoading = false;
-      });
+      if(mounted){
+        setState(() {
+          products = fetchedProducts;
+          filteredProducts = List.from(products);
+          isLoading = false;
+        });
+      }
+
     } catch (e) {
       print('Error fetching products: $e');
       setState(() {
@@ -544,15 +583,16 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
 
     if (updatedProduct != null) {
-      setState(() {
-        // Find and update the edited product in the list
-        int index = filteredProducts.indexWhere(
-          (p) => p.id == updatedProduct.id,
-        );
-        if (index != -1) {
-          filteredProducts[index] = updatedProduct;
-        }
-      });
+      ref.read(productProvider.notifier).updateProduct(updatedProduct);
+      // setState(() {
+      //   // Find and update the edited product in the list
+      //   int index = filteredProducts.indexWhere(
+      //         (p) => p.id == updatedProduct.id,
+      //   );
+      //   if (index != -1) {
+      //     filteredProducts[index] = updatedProduct;
+      //   }
+      // });
     }
   }
 
@@ -575,10 +615,29 @@ class _HomePageState extends ConsumerState<HomePage> {
     });
   }
 
+  void _applyFilter_SharedPref(String newFilter) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selectedFilter', newFilter);
+    setState(() {
+      selectedFilter = newFilter;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    ref.listen(productProvider, (previous, next) {
+      if (previous == null) {
+        _fetchProducts();
+        print("✅ Products fetched via ref.listen");
+      }
+    });
     var counterValue = ref.watch(counterProvider.state).state;
-    print("EMIALs:s  $storedEmail}");
+    ref.listen(productProvider, (previous, next) {
+      print("✅ Product state changed!");
+      setState(() {}); // Only trigger UI update
+    });
+    // print("PRODUCT LIST: ${productList.}");
+
     if (isLoading && products.isEmpty) {
       return Scaffold(
         backgroundColor: Colors.white,
@@ -835,6 +894,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 selectedFilter = newFilter;
                               });
                               _applyFilter(newFilter);
+                              _applyFilter_SharedPref(newFilter);
                             },
                             itemBuilder: (BuildContext context) {
                               return [
@@ -922,6 +982,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                                           ),
                                     ),
                                   );
+                                  if (updatedProduct != null) {
+                                    print("⬅️ Returned Updated Product: ${updatedProduct.id}");
+                                    ref.read(productProvider.notifier).updateProduct(updatedProduct);
+                                  }
                                 },
 
                                 updateCounter: updateCounter,
@@ -1357,59 +1421,131 @@ class _HomePageState extends ConsumerState<HomePage> {
 
               // Product Grid View
               Expanded(
-                child:
-                    filteredProducts.isEmpty
-                        ? const Center(
-                          child: Text(
-                            "No Products Found",
-                            style: TextStyle(
-                              fontSize: 22,
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        )
-                        : GridView.builder(
-                          controller: _scrollController,
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                mainAxisSpacing: 8.0,
-                                crossAxisSpacing: 8.0,
-                                childAspectRatio: 3 / 4,
-                              ),
-                          itemCount:
-                              filteredProducts.length + (isLoading ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (index == filteredProducts.length && isLoading) {
-                              return const Center(
-                                child: CircularProgressIndicator(),
-                              );
-                            }
-                            final product = filteredProducts[index];
-                            return ProductCard(
-                              product: product,
-                              index: index,
-                              isGlobalSelected: isSelectAll,
-                              isSelectAll: isSelectAll,
-                              onTap: () {
-                                setState(() {
-                                  if (!selectedProductIds.contains(
-                                    product.id,
-                                  )) {
-                                    selectedProductIds.add(product.id);
-                                  } else {
-                                    selectedProductIds.remove(product.id);
-                                  }
-                                });
-                              },
-                              updateCounter: updateCounter,
-                              selectedProductIds: selectedProductIds,
-                              // updateSelectedProductIds: updateSelectedProductIds,
-                            );
-                          },
+                child: FutureBuilder<List<Product>>(
+                  future: ApiService.fetchProducts(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          "Error: ${snapshot.error}",
+                          style: TextStyle(color: Colors.red, fontSize: 18),
                         ),
+                      );
+                    }
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          "No Products Found",
+                          style: TextStyle(
+                            fontSize: 22,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      );
+                    }
+
+                    filteredProducts = snapshot.data!; // Update product list
+
+                    return GridView.builder(
+                      controller: _scrollController,
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 8.0,
+                        crossAxisSpacing: 8.0,
+                        childAspectRatio: 3 / 4,
+                      ),
+                      itemCount: filteredProducts.length + (isLoading ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == filteredProducts.length && isLoading) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+                        final product = filteredProducts[index];
+
+                        return ProductCard(
+                          product: product,
+                          index: index,
+                          isGlobalSelected: isSelectAll,
+                          isSelectAll: isSelectAll,
+                          onTap: () {
+                            setState(() {
+                              if (!selectedProductIds.contains(product.id)) {
+                                selectedProductIds.add(product.id);
+                              } else {
+                                selectedProductIds.remove(product.id);
+                              }
+                            });
+                          },
+                          updateCounter: updateCounter,
+                          selectedProductIds: selectedProductIds,
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
+
+
+              // Expanded(
+              //   child:
+              //       filteredProducts.isEmpty
+              //           ? const Center(
+              //             child: Text(
+              //               "No Products Found",
+              //               style: TextStyle(
+              //                 fontSize: 22,
+              //                 color: Colors.grey,
+              //                 fontWeight: FontWeight.bold,
+              //               ),
+              //             ),
+              //           )
+              //           : GridView.builder(
+              //             controller: _scrollController,
+              //             gridDelegate:
+              //                 const SliverGridDelegateWithFixedCrossAxisCount(
+              //                   crossAxisCount: 2,
+              //                   mainAxisSpacing: 8.0,
+              //                   crossAxisSpacing: 8.0,
+              //                   childAspectRatio: 3 / 4,
+              //                 ),
+              //             itemCount:
+              //                 filteredProducts.length + (isLoading ? 1 : 0),
+              //             itemBuilder: (context, index) {
+              //               if (index == filteredProducts.length && isLoading) {
+              //                 return const Center(
+              //                   child: CircularProgressIndicator(),
+              //                 );
+              //               }
+              //               final product = filteredProducts[index];
+              //
+              //               return ProductCard(
+              //                 product: product,
+              //                 index: index,
+              //                 isGlobalSelected: isSelectAll,
+              //                 isSelectAll: isSelectAll,
+              //                 onTap: () {
+              //                   setState(() {
+              //                     if (!selectedProductIds.contains(
+              //                       product.id,
+              //                     )) {
+              //                       selectedProductIds.add(product.id);
+              //                     } else {
+              //                       selectedProductIds.remove(product.id);
+              //                     }
+              //                   });
+              //                 },
+              //                 updateCounter: updateCounter,
+              //                 selectedProductIds: selectedProductIds,
+              //                 // updateSelectedProductIds: updateSelectedProductIds,
+              //               );
+              //             },
+              //           ),
+              // ),
             ],
           ),
         ),

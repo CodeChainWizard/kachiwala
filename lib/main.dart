@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:newprg/widgets/CreateNewProduct.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_page.dart';
 import 'widgets/Login.page.dart';
-import 'widgets/add_product_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final bool isLoggedIn = await getLoginStatus();
+  // debugPaintSizeEnabled = true;
   runApp(ProviderScope(child: MyApp(isLoggedIn: isLoggedIn)));
 }
 

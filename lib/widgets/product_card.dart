@@ -51,6 +51,8 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     super.initState();
     _compressAndLoadImage();
     getEmailFromSharedPref();
+
+
   }
 
   void _handleSelectAll() {

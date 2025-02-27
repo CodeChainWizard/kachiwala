@@ -1,30 +1,51 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart' show FutureProvider;
-// import 'package:newprg//models/product.dart' as model;
-import 'package:newprg/models/product.dart' as model;
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/product.dart';
+import 'api_service.dart'; // Import your API service
 
-import 'api_service.dart';
+class ProductNotifier extends StateNotifier<List<Product>> {
+  ProductNotifier() : super([]);
 
-final productProvider = FutureProvider<List<model.Product>>((ref) async {
-  try {
-    final fetchedProducts = await ApiService.fetchProducts();
-
-    // Ensure fetchedProducts is a list and print the list of Product objects
-    if (fetchedProducts is List) {
-      // Print each product using the overridden toString method
-      fetchedProducts.forEach((product) {
-        print("Product details: ${product.type}"); // This will print the details of each product
-      });
-
-      // Map the list of maps to Product objects
-      return fetchedProducts
-          .map((product) => model.Product.fromJson(product as Map<String, dynamic>))
-          .toList();
-    } else {
-      throw Exception("Fetched data is not a list.");
+  Future<void> fetchProducts() async {
+    try {
+      final fetchedProducts = await ApiService.fetchProducts();
+      state = fetchedProducts; // Updates UI automatically
+      print("UI UPADTE: $state");
+    } catch (e) {
+      print('Error fetching products: $e');
     }
-  } catch (error) {
-    print("Error fetching products: $error");
-    throw error; // Re-throw the error to handle it in the UI
   }
-});
 
+  void addProduct(Product newProduct) {
+    state = [...state, newProduct];
+  }
+
+  void removeProduct(String productId) {
+    state = state.where((p) => p.id != productId).toList();
+  }
+
+  void updateProduct(Product updatedProduct) {
+    state = state.map((product) {
+      if (product.id == updatedProduct.id) {
+        debugPrint("🔄 Updating product: ${updatedProduct.id}, New Name: ${updatedProduct.name}");
+        return updatedProduct;
+      }
+      return product;
+    }).toList();
+
+    // Check if the product was actually updated
+    bool productFound = state.any((product) => product.id == updatedProduct.id);
+
+    if (!productFound) {
+      debugPrint("❌ Product ID not found in list!");
+    }
+
+    debugPrint("✅ Updated product list: ${state.map((p) => p.toJson()).toList()}");
+  }
+
+
+}
+
+final productProvider = StateNotifierProvider<ProductNotifier, List<Product>>(
+      (ref) => ProductNotifier(),
+);

@@ -56,6 +56,7 @@ class _AddProductPageState extends State<AddProductPage> {
   Uint8List? compressedImage;
 
   Future<void> _pickImage() async {
+    FocusScope.of(context).unfocus();
     try {
       final pickedFile = await ImagePicker().pickImage(
         source: ImageSource.gallery,
@@ -63,13 +64,17 @@ class _AddProductPageState extends State<AddProductPage> {
       if (pickedFile != null) {
         final imageBytes = await pickedFile.readAsBytes();
 
-        final compressed = await _compressImage(imageBytes);
-        if (compressed != null) {
-          setState(() {
-            compressedImage = compressed;
-            images.add(compressed);
-          });
-        }
+        // final compressed = await _compressImage(imageBytes);
+        // if (compressed != null) {
+        //   setState(() {
+        //     compressedImage = compressed;
+        //     images.add(compressed);
+        //   });
+        // }
+        setState(() {
+          images.add(imageBytes);
+        });
+
       }
     } catch (e) {
       print("Error selecting image: $e");
@@ -87,7 +92,7 @@ class _AddProductPageState extends State<AddProductPage> {
         imageBytes,
         minWidth: 300,
         minHeight: 300,
-        quality: 20,
+        quality: 100,
       );
 
       if (compressedImage == null || compressedImage.isEmpty) {
@@ -308,7 +313,10 @@ class _AddProductPageState extends State<AddProductPage> {
               Padding(
                 padding: const EdgeInsets.only(top: 12.0, bottom: 10.0),
                 child: ElevatedButton(
-                  onPressed: images.isNotEmpty ? null : _pickImage,
+                  onPressed: images.isNotEmpty ? null : (){
+                    FocusScope.of(context).unfocus();
+                    _pickImage();
+                  },
                   style: ElevatedButton.styleFrom(
                     foregroundColor: Colors.white,
                     backgroundColor: ui.Color(0xFF1D3557),
@@ -336,13 +344,7 @@ class _AddProductPageState extends State<AddProductPage> {
                 ),
               ),
 
-              // Padding(
-              //   padding: const EdgeInsets.only(top: 12.0, bottom: 10.0),
-              //   child: ElevatedButton(
-              //     onPressed: images.isNotEmpty ? null : _pickImage,
-              //     child: const Text('Select Image'),
-              //   ),
-              // ),
+
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
@@ -353,7 +355,9 @@ class _AddProductPageState extends State<AddProductPage> {
                     return image != null
                         ? GestureDetector(
                           onTap: () async {
-                            // Open the full preview directly on image tap
+
+                            FocusScope.of(context).unfocus();
+
                             showDialog(
                               context: context,
                               builder: (BuildContext context) {
@@ -370,8 +374,8 @@ class _AddProductPageState extends State<AddProductPage> {
                             children: [
                               Image.memory(
                                 image,
-                                height: 200,
-                                width: 200,
+                                height: 150,
+                                width: 150,
                                 fit: BoxFit.cover,
                               ),
                               Positioned(
@@ -379,6 +383,7 @@ class _AddProductPageState extends State<AddProductPage> {
                                 left: 0,
                                 child: GestureDetector(
                                   onTap: () async {
+                                    FocusScope.of(context).unfocus();
                                     showDialog(
                                       context: context,
                                       builder: (BuildContext context) {
@@ -482,6 +487,7 @@ class _AddProductPageState extends State<AddProductPage> {
                                 right: 0,
                                 child: GestureDetector(
                                   onTap: () {
+                                    FocusScope.of(context).unfocus();
                                     setState(() {
                                       images.removeAt(index);
                                     });
