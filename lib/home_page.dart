@@ -4,8 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:newprg/services/product.riverPod.dart';
 import 'package:newprg/widgets/AddPersonPage.dart';
 import 'package:newprg/widgets/CreateNewProduct.dart';
+import 'package:newprg/widgets/EditProductPage.dart';
 import 'package:newprg/widgets/shareProduct.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -86,6 +88,13 @@ class _HomePageState extends ConsumerState<HomePage> {
     // _requestStoragePermission(context);
     getStoredEmail();
   }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _fetchProducts();
+  }
+
 
   void toggleDropdown() {
     if (isDropdownOpen) {
@@ -298,7 +307,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     });
 
     _searchController.clear();
-    await _fetchProducts(); // Make sure _fetchProducts is async
+    await _fetchProducts();
   }
 
   Future<void> _fetchProducts() async {
@@ -307,14 +316,13 @@ class _HomePageState extends ConsumerState<HomePage> {
         isLoading = true;
       });
 
-      // Fetch all products
       List<Product> fetchedProducts = await ApiService.fetchProducts();
 
       print("API RESPONSE: $fetchedProducts");
 
       setState(() {
         products = fetchedProducts;
-        filteredProducts = products;
+        filteredProducts = List.from(products);
         isLoading = false;
       });
     } catch (e) {
@@ -439,6 +447,31 @@ class _HomePageState extends ConsumerState<HomePage> {
     return counter.state;
   }
 
+  Future<void> _deleteProduct(BuildContext context) async {
+    try {
+      print("IDSsss:${selectedProductIds}");
+      final response = await ApiService.deleteProducts([
+        selectedProductIds.toString(),
+      ]);
+
+      if (response.statusCode == 200) {
+        Navigator.of(context).pop(); // Close dialog
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomePage()),
+        );
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Failed to delete product")));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+    }
+  }
+
   Future<void> clearCache() async {
     if (kIsWeb) {
       print("Cache clearing is not supported on Flutter Web.");
@@ -500,6 +533,46 @@ class _HomePageState extends ConsumerState<HomePage> {
   Future<void> getStoredEmail() async {
     SharedPreferences sp = await SharedPreferences.getInstance();
     storedEmail = sp.getString("email");
+  }
+
+  void _navigateToEditPage(Product product) async {
+    final updatedProduct = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditProductPage(productData: product),
+      ),
+    );
+
+    if (updatedProduct != null) {
+      setState(() {
+        // Find and update the edited product in the list
+        int index = filteredProducts.indexWhere(
+          (p) => p.id == updatedProduct.id,
+        );
+        if (index != -1) {
+          filteredProducts[index] = updatedProduct;
+        }
+      });
+    }
+  }
+
+  void _updateProductList(Product updatedProduct) {
+    setState(() {
+      int productIndex = products.indexWhere((p) => p.id == updatedProduct.id);
+      if (productIndex != -1) {
+        products[productIndex] = updatedProduct;
+      }
+
+      int filteredIndex = filteredProducts.indexWhere(
+        (p) => p.id == updatedProduct.id,
+      );
+      if (filteredIndex != -1) {
+        filteredProducts[filteredIndex] = updatedProduct;
+      }
+
+      products = List.from(products);
+      filteredProducts = List.from(filteredProducts);
+    });
   }
 
   @override
@@ -819,22 +892,38 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 );
                               }
                               final product = filteredProducts[index];
+
                               return ProductCard(
                                 product: product,
                                 index: index,
                                 isGlobalSelected: isSelectAll,
                                 isSelectAll: isSelectAll,
-                                onTap: () {
-                                  setState(() {
-                                    if (!selectedProductIds.contains(
-                                      product.id,
-                                    )) {
-                                      selectedProductIds.add(product.id);
-                                    } else {
-                                      selectedProductIds.remove(product.id);
-                                    }
-                                  });
+                                // onTap: () {
+                                //   setState(() {
+                                //     if (!selectedProductIds.contains(
+                                //       product.id,
+                                //     )) {
+                                //       selectedProductIds.add(product.id);
+                                //     } else {
+                                //       selectedProductIds.remove(product.id);
+                                //     }
+                                //   });
+                                // },
+                                onTap: () async {
+                                  final updatedProduct = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) => EditProductPage(
+                                            productData: product,
+                                            // onProductUpdated: (Product newProduct) {
+                                            //   _updateProductList(newProduct);
+                                            // },
+                                          ),
+                                    ),
+                                  );
                                 },
+
                                 updateCounter: updateCounter,
                                 selectedProductIds: selectedProductIds,
                                 // updateSelectedProductIds: updateSelectedProductIds,
@@ -896,7 +985,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                     SpeedDialChild(
                       child: Icon(Icons.delete, color: Colors.white),
                       backgroundColor: Colors.red,
-                      // label: 'Delete',
                       labelStyle: TextStyle(
                         fontSize: 16.0,
                         color: Colors.white,
@@ -966,23 +1054,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                           );
 
                           if (confirmDelete == true) {
-                            try {
-                              var response = await ApiService.deleteProducts(
-                                selectedProductIds,
-                              );
-                              if (response.statusCode == 200) {
-                                setState(() {
-                                  selectedProductIds = [];
-                                  counterValue = 0;
-                                });
-                              }
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('An error occurred: $e'),
-                                ),
-                              );
-                            }
+                            await _deleteProduct(context);
                           }
                         }
                       },
@@ -1395,6 +1467,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ),
                     labelBackgroundColor: Colors.redAccent,
                     onTap: () async {
+                      _deleteProduct(context);
                       if (counterValue > 0 && selectedProductIds.isNotEmpty) {
                         bool? confirmDelete = await showDialog(
                           context: context,

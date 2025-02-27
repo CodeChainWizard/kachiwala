@@ -31,30 +31,7 @@ class _LoginPageState extends State<LoginPage> {
     loadAndCompressImage();
   }
 
-  void _navigateToHomePage() async {
-    final email = emailController.text.trim();
-    final password = passwordController.text.trim();
-
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please Enter Both Username and Password')),
-      );
-      return;
-    }
-
-    bool isLoggedIn = await ApiService.login(email, password);
-
-    if (isLoggedIn) {
-      onLoginSuccess(context, email, password);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid Credentials')),
-      );
-    }
-  }
-
-  // --- static Email and Password login --- (narayan, kachiwala)
-  // void _navigateToHomePage() {
+  // void _navigateToHomePage() async {
   //   final email = emailController.text.trim();
   //   final password = passwordController.text.trim();
   //
@@ -65,7 +42,9 @@ class _LoginPageState extends State<LoginPage> {
   //     return;
   //   }
   //
-  //   if (email == 'narayan' && password == 'kachiwala') {
+  //   bool isLoggedIn = await ApiService.login(email, password);
+  //
+  //   if (isLoggedIn) {
   //     onLoginSuccess(context, email, password);
   //   } else {
   //     ScaffoldMessenger.of(context).showSnackBar(
@@ -74,6 +53,26 @@ class _LoginPageState extends State<LoginPage> {
   //   }
   // }
 
+  // --- static Email and Password login --- (narayan, kachiwala)
+  void _navigateToHomePage() {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please Enter Both Username and Password')),
+      );
+      return;
+    }
+
+    if (email == 'narayan' && password == 'kachiwala') {
+      onLoginSuccess(context, email, password);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid Credentials')),
+      );
+    }
+  }
 
   void onLoginSuccess(BuildContext context, String email, String password) async {
     await setLoginStatus(true);
@@ -86,8 +85,6 @@ class _LoginPageState extends State<LoginPage> {
       MaterialPageRoute(builder: (context) => HomePage()),
     );
   }
-
-
 
   Future<void> loadAndCompressImage() async {
     try {
@@ -231,6 +228,5 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-
 
 }

@@ -10,9 +10,18 @@ class ApiService {
   // static const String _baseUrl_GET = 'http://103.251.16.248:5000/api/products/test';
   // static const String _baseUrl_POST = 'http://103.251.16.248:5000/api/product';
 
-  static const String _baseUrl_GET =
-      'http://192.168.1.21:5000/api/products/test';
-  static const String _baseUrl_POST = 'http://192.168.1.21:5000/api/product';
+  // --- FOR MY LOCAL ----
+  // static const String _baseUrl_GET = 'http://localhost:5000/api/products/test';
+  // static const String _baseUrl_POST = 'http://localhost:5000/api/product';
+  // static const String _baseUrl_DELETE = 'http://localhost:5000/api/delete';
+
+  // static const String _baseUrl_GET = 'http://192.168.1.21:5000/api/products/test';
+  // static const String _baseUrl_POST = 'http://192.168.1.21:5000/api/product';
+  // static const String _baseUrl_DELETE = 'http://192.168.1.21:5000/api/delete';
+
+  static const String _baseUrl_GET = 'http://103.251.16.248:5000/api/products/test';
+  static const String _baseUrl_POST = 'http://103.251.16.248:5000/api/product';
+  static const String _baseUrl_DELETE = 'http://103.251.16.248:5000/api/delete';
 
   // ?take&skip
   static Future<List<Product>> fetchProducts() async {
@@ -119,13 +128,14 @@ class ApiService {
     }
   }
 
+
+  // http://localhost:5000/api/delete/2
   static Future<Response> deleteProducts(List<String> productIds) async {
     Dio dio = Dio();
 
     try {
       final response = await dio.delete(
-        '$_baseUrl_POST/delete',
-        data: {'productIds': productIds},
+        '$_baseUrl_DELETE/${productIds[0]}',
         options: Options(headers: {'Content-Type': 'application/json'}),
       );
 
@@ -197,10 +207,8 @@ class ApiService {
     }
   }
 
-  static Future<Response> updateProduct(
-    String productId,
-    FormData formData,
-  ) async {
+  // http://localhost:5000/api/product/1 -> put
+  static Future<Response> updateProduct(String productId, FormData formData,) async {
     Dio dio = Dio();
 
     try {

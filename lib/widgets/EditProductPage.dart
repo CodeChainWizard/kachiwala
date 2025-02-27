@@ -12,13 +12,9 @@ import 'package:newprg/services/api_service.dart';
 
 class EditProductPage extends StatefulWidget {
   final Product productData;
-  final VoidCallback onProductUpdated;
 
-  const EditProductPage({
-    Key? key,
-    required this.productData,
-    required this.onProductUpdated,
-  }) : super(key: key);
+  const EditProductPage({Key? key, required this.productData})
+    : super(key: key);
 
   @override
   _EditProductPageState createState() => _EditProductPageState();
@@ -141,8 +137,22 @@ class _EditProductPageState extends State<EditProductPage> {
         formData,
       );
       if (response.statusCode == 200) {
-        widget.onProductUpdated();
-        Navigator.pop(context, true);
+        Product updatedProduct = Product(
+          id: widget.productData.id,
+          name: nameController.text,
+          designNo: designNoController.text,
+          meter: meterController.text,
+          size: sizeController.text,
+          rate: int.parse(priceController.text),
+          type: typeController.text,
+          color: colorController.text,
+          packing: packingController.text,
+          code: "",
+          description: '',
+          imagePaths: [...imageUrls, ...newImages.map((_) => 'new_image_url')],
+        );
+
+        Navigator.pop(context, updatedProduct); // ✅ Return updated product
       } else {
         _showDialog('Error', 'Update failed. Please try again.');
       }
@@ -215,7 +225,10 @@ class _EditProductPageState extends State<EditProductPage> {
                   ),
                   backgroundColor: Color(0xFF1D3557),
                 ),
-                child: Text('Select Image', style: TextStyle(color: Colors.white)),
+                child: Text(
+                  'Select Image',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ),
 
@@ -275,7 +288,10 @@ class _EditProductPageState extends State<EditProductPage> {
                       ? CircularProgressIndicator(
                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       )
-                      : Text("Update Product", style: TextStyle(color: Colors.white),),
+                      : Text(
+                        "Update Product",
+                        style: TextStyle(color: Colors.white),
+                      ),
             ),
           ],
         ),
