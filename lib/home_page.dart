@@ -56,6 +56,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   bool getData = false;
   bool hasMore = true;
+  bool hasFetchedOnce = false;
 
   late SharedPreferences pref;
   String selectedProductType = '';
@@ -93,11 +94,16 @@ class _HomePageState extends ConsumerState<HomePage> {
   String selectedFilter = "A-Z";
   int count = 0;
 
+  String? token;
+
   late Future<List<Product>> _productFuture;
 
   @override
   void initState() {
     super.initState();
+    getStoredEmail();
+    // _fetchProducts();
+
     Future.delayed(Duration.zero, () {
       _fetchProducts();
     });
@@ -111,7 +117,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     _scrollController.addListener(_scrollListener);
     // _requestStoragePermission(context);
-    getStoredEmail();
+
     _loadFilter();
     _fetchUserRole();
   }
@@ -371,9 +377,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         isLoading = true;
       });
 
-      final token = ref.read(userProvider)?['token'];
-
-      if (token == null || token.isEmpty) {
+      if (token == null) {
         print("Error: Token is missing");
         setState(() {
           isLoading = false;
@@ -381,7 +385,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         return;
       }
 
-      List<Product> fetchedProducts = await ApiService.fetchProducts(token);
+      List<Product> fetchedProducts = await ApiService.fetchProducts(token!);
 
       print("API RESPONSE: $fetchedProducts");
 
@@ -390,12 +394,14 @@ class _HomePageState extends ConsumerState<HomePage> {
           products = fetchedProducts;
           filteredProducts = List.from(products);
           isLoading = false;
+          hasFetchedOnce = true; // Set after loading completes
         });
       }
     } catch (e) {
       print('Error fetching products: $e');
       setState(() {
         isLoading = false;
+        hasFetchedOnce = true;
       });
     }
   }
@@ -580,6 +586,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     SharedPreferences sp = await SharedPreferences.getInstance();
     storedEmail = sp.getString("email") ?? "No Email Found";
     storedName = sp.getString("name") ?? "No Name Found";
+    token = sp.getString("token");
 
     print("Stored Email: ${storedEmail!}");
     print("Stored Name: ${storedName!}");
@@ -648,12 +655,12 @@ class _HomePageState extends ConsumerState<HomePage> {
     ref.listen(productProvider, (previous, next) {
       if (previous == null) {
         _fetchProducts();
-        print("✅ Products fetched via ref.listen");
+        print("Products fetched via ref.listen");
       }
     });
     var counterValue = ref.watch(counterProvider.state).state;
     ref.listen(productProvider, (previous, next) {
-      print("✅ Product state changed!");
+      print("Product state changed!");
       setState(() {}); // Only trigger UI update
     });
     // print("PRODUCT LIST: ${productList.}");
@@ -953,10 +960,26 @@ class _HomePageState extends ConsumerState<HomePage> {
 
                 // Product Grid View
                 Expanded(
-                  child:
+                  child: !hasFetchedOnce ? const Center(
+                    child: CircularProgressIndicator(),
+                  ):
                       filteredProducts.isEmpty
-                          ? const Center(
-                            child: Text(
+                          ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Opacity(
+                              opacity: 0.5,
+                              child: Image.asset(
+                                'assets/images/kachiwala.png',
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            SizedBox(height: 20),
+                            const Text(
                               "No Products Found",
                               style: TextStyle(
                                 fontSize: 22,
@@ -964,7 +987,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                          )
+                          ],
+                        ),
+                      )
                           : GridView.builder(
                             key: ValueKey(selectedFilter),
                             controller: _scrollController,
@@ -1520,8 +1545,22 @@ class _HomePageState extends ConsumerState<HomePage> {
               Expanded(
                 child:
                     filteredProducts.isEmpty
-                        ? const Center(
-                          child: Text(
+                        ?  Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Opacity(
+                            opacity: 0.5,
+                            child: Image.asset(
+                              'assets/images/kachiwala.png',
+                              width: 100,
+                              height: 100,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          SizedBox(height: 20),
+                          const Text(
                             "No Products Found",
                             style: TextStyle(
                               fontSize: 22,
@@ -1529,7 +1568,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                        )
+                        ],
+                      ),
+                    )
                         : GridView.builder(
                           controller: _scrollController,
                           gridDelegate:

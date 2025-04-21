@@ -198,7 +198,10 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
                                     widget.refreshProducts();
                                     widget.searchController.clear();
                                     filterProducts('');
-                                    FocusScope.of(context).unfocus();
+                                    _focusNode.unfocus();
+                                    setState(() {
+                                      isTextFieldFocused = false;
+                                    });
                                   },
                                 )
                                 : Icon(Icons.search, color: Colors.black54),

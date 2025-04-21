@@ -456,14 +456,13 @@ class ApiService {
           print("No products found for query: $query");
           return [];
         }
-
         return data.map((json) => Product.fromJson(json)).toList();
       } else {
         print("Failed to fetch products. Status Code: ${response.statusCode}");
         throw Exception('Failed to fetch products for search query');
       }
     } catch (e) {
-      print("Error during search: $e"); // Debug statement
+      print("Error during search: $e");
       throw Exception('Error during search: $e');
     }
   }

@@ -49,8 +49,6 @@ class _ProductCardState extends ConsumerState<ProductCard> {
     super.initState();
     _compressAndLoadImage();
     // getEmailFromSharedPref();
-
-
   }
 
   void _handleSelectAll() {
@@ -199,9 +197,6 @@ class _ProductCardState extends ConsumerState<ProductCard> {
         false;
   }
 
-
-
-
   @override
   Widget build(BuildContext context) {
     // print("Counter value in riverpods: $counterValue");
@@ -286,19 +281,104 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                         ),
                         child: Container(
                           width: MediaQuery.of(context).size.width * 0.5,
-                          child: Image.network(
-                            // _resolveImageUrl(widget.product.imagePaths![0]),
-                            // "http://192.168.1.2:5000/uploads/folder1/1734342621219-573985215.jpg",
-                            resolvedImagePath!,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Icon(
-                                Icons.broken_image,
-                                size: 100,
-                                color: Colors.grey,
-                              );
-                            },
+                          child: Stack(
+                            children: [
+                              Image.network(
+                                resolvedImagePath!,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Icon(
+                                    Icons.broken_image,
+                                    size: 100,
+                                    color: Colors.grey,
+                                  );
+                                },
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 5,
+                                    ),
+                                    backgroundColor: Colors.black54,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    textStyle: TextStyle(fontSize: 12),
+                                  ),
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder:
+                                          (context) => Dialog(
+                                            backgroundColor: Colors.transparent,
+                                            insetPadding: EdgeInsets.zero,
+                                            child: Container(
+                                              width:
+                                                  MediaQuery.of(
+                                                    context,
+                                                  ).size.width *
+                                                  0.7,
+                                              height:
+                                                  MediaQuery.of(
+                                                    context,
+                                                  ).size.height *
+                                                  0.5,
+                                              color: Colors.black,
+                                              child: PageView.builder(
+                                                itemCount:
+                                                    widget
+                                                        .product
+                                                        .imagePaths!
+                                                        .length,
+                                                itemBuilder: (context, index) {
+                                                  final imageUrl =
+                                                      _resolveImageUrl(
+                                                        widget
+                                                            .product
+                                                            .imagePaths![index],
+                                                      );
+                                                  return GestureDetector(
+                                                    onTap:
+                                                        () =>
+                                                            Navigator.of(
+                                                              context,
+                                                            ).pop(),
+                                                    child: InteractiveViewer(
+                                                      child: Image.network(
+                                                        imageUrl,
+                                                        fit: BoxFit.contain,
+                                                        width: double.infinity,
+                                                        height: double.infinity,
+                                                        errorBuilder: (
+                                                          context,
+                                                          error,
+                                                          stackTrace,
+                                                        ) {
+                                                          return Icon(
+                                                            Icons.broken_image,
+                                                            size: 100,
+                                                            color: Colors.grey,
+                                                          );
+                                                        },
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                    );
+                                  },
+                                  child: Text("Preview"),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       )
@@ -351,8 +431,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                                           TextSpan(
                                             text: '${widget.product.rate} Rs',
                                             style: TextStyle(
-                                              fontSize:
-                                                  isSmallScreen ? 14 : 16,
+                                              fontSize: isSmallScreen ? 14 : 16,
                                               color: Colors.grey[600],
                                             ),
                                           ),
@@ -373,8 +452,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                                 children: [
                                   Expanded(
                                     child: Tooltip(
-                                      message:
-                                          widget.product.person,
+                                      message: widget.product.person,
                                       child: RichText(
                                         overflow: TextOverflow.ellipsis,
                                         text: TextSpan(
@@ -388,8 +466,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                                               ),
                                             ),
                                             TextSpan(
-                                              text:
-                                              widget.product.person,
+                                              text: widget.product.person,
                                               // The long name
                                               style: TextStyle(
                                                 fontSize:
@@ -408,23 +485,16 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                                       try {
                                         // Get the selected products
                                         final selectedProducts =
-                                            widget
-                                                    .selectedProductIds
-                                                    .isNotEmpty
+                                            widget.selectedProductIds.isNotEmpty
                                                 ? widget.selectedProductIds
-                                                    .map(
-                                                      (id) => widget.product,
-                                                    )
+                                                    .map((id) => widget.product)
                                                     .toList()
                                                 : [widget.product];
 
                                         // Iterate through the selected products
-                                        for (var product
-                                            in selectedProducts) {
+                                        for (var product in selectedProducts) {
                                           if (product.imagePaths != null &&
-                                              product
-                                                  .imagePaths!
-                                                  .isNotEmpty) {
+                                              product.imagePaths!.isNotEmpty) {
                                             if (product.imagePaths!.length ==
                                                 1) {
                                               // Share normally if there's only one image
