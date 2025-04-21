@@ -93,7 +93,6 @@ class _AddProductPageState extends State<AddProductPage> {
     }
   }
 
-
   Future<Uint8List?> _compressImage(Uint8List imageBytes) async {
     if (imageBytes.isEmpty) {
       print("Error: Empty image data received for compression.");

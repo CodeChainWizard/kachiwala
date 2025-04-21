@@ -210,39 +210,41 @@ class _GetUserDetailsState extends State<GetUserDetails> {
                           ),
                           Padding(
                             padding: const EdgeInsets.all(8.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                IconButton(
-                                  icon: Icon(Icons.edit, color: Colors.blue),
-                                  onPressed: () async {
-                                    final result = await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder:
-                                            (context) => EditUserPage(
-                                              userId: user["id"],
-                                              name: user["name"],
-                                              email: user["email"],
-                                              password: user["password"]
-                                            ),
-                                      ),
-                                    );
-
-                                    if (result == true) {
-                                      _fetchUsers(); // Refresh user list after edit
-                                    }
-                                  },
-                                ),
-
-                                IconButton(
-                                  icon: Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () {
-                                    int userId = user["id"];
-                                    _deleteUser(userId);
-                                  },
-                                ),
-                              ],
+                            child: FittedBox(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.edit, color: Colors.blue),
+                                    onPressed: () async {
+                                      final result = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder:
+                                              (context) => EditUserPage(
+                                                userId: user["id"],
+                                                name: user["name"],
+                                                email: user["email"],
+                                                password: user["password"]
+                                              ),
+                                        ),
+                                      );
+                              
+                                      if (result == true) {
+                                        _fetchUsers(); // Refresh user list after edit
+                                      }
+                                    },
+                                  ),
+                              
+                                  IconButton(
+                                    icon: Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () {
+                                      int userId = user["id"];
+                                      _deleteUser(userId);
+                                    },
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
