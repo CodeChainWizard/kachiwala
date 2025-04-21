@@ -9,14 +9,15 @@ import 'widgets/Login.page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final bool isLoggedIn = await getLoginStatus();
-  // debugPaintSizeEnabled = true;
-  runApp(ProviderScope(child: MyApp(isLoggedIn: isLoggedIn)));
+  SharedPreferences pref = await SharedPreferences.getInstance();
+  final token = pref.getString("token");
+
+  runApp(ProviderScope(child: MyApp(isLoggedIn: token != null)));
 }
 
 class MyApp extends StatelessWidget {
   final bool isLoggedIn;
-  MyApp({required this.isLoggedIn}); // Fixed parameter handling
+  MyApp({required this.isLoggedIn});
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +28,7 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
 
 class SecureScreen extends StatefulWidget {
   final Widget child;

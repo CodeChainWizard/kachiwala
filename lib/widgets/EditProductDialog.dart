@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as ref;
 import 'package:newprg/services/api_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:ui' as ui;
 
 import '../models/product.dart';
+import '../services/user_provider.dart';
 import 'add_product_dialog.dart';
 
 // Reusable Add/Edit Product Dialog
@@ -42,10 +45,16 @@ class _EditProductDialogState extends State<EditProductDialog> {
 
   bool isImagePicked = false;
 
-
+  String? token;
   @override
   void initState() {
     super.initState();
+    getToken();
+  }
+
+  void getToken() async{
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    token = pref.getString("token");
   }
 
   Future<void> _pickImage() async {
@@ -89,9 +98,12 @@ class _EditProductDialogState extends State<EditProductDialog> {
         "images": multipartImages,
       });
 
+
+
       var response = await ApiService.updateProduct(
         widget.productData.id,
         formData,
+          token!
       );
 
       if (response.statusCode == 200) {

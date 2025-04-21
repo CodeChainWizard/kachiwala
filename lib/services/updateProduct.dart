@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/product.dart';
 import '../services/api_service.dart';
 
@@ -12,7 +13,10 @@ class ProductNotifier extends AsyncNotifier<List<Product>> {
   /// Fetch all products from API
   Future<List<Product>> fetchProducts() async {
     try {
-      final products = await ApiService.fetchProducts();
+      SharedPreferences pref = await SharedPreferences.getInstance();
+      final token = pref.getString("token");
+
+      final products = await ApiService.fetchProducts(token!);
       return products;
     } catch (e) {
       throw Exception("Error fetching products: $e");

@@ -5,9 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:newprg/services/product.riverPod.dart';
+import 'package:newprg/services/user_provider.dart';
 import 'package:newprg/widgets/AddPersonPage.dart';
+import 'package:newprg/widgets/ChangePasswordPage.dart';
 import 'package:newprg/widgets/CreateNewProduct.dart';
 import 'package:newprg/widgets/EditProductPage.dart';
+import 'package:newprg/widgets/ProductDetailScreen.dart';
+import 'package:newprg/widgets/getUserDetails.dart';
 import 'package:newprg/widgets/shareProduct.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -39,7 +43,8 @@ class _HomePageState extends ConsumerState<HomePage> {
   bool isSelectAll = false;
   bool productSelection = false;
   String? selectedProductId;
-  String? storedEmail = "";
+  String? storedEmail;
+  String? storedName;
 
   bool isMenuOpen = false;
 
@@ -57,9 +62,19 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   List<String> selectedProductIds = [];
 
+  UniqueKey _futureBuilderKey = UniqueKey();
+
   OverlayEntry? _overlayEntry;
   final LayerLink _layerLink = LayerLink();
   bool isDropdownOpen = false;
+
+  String? userRole;
+
+  Future<void> _fetchUserRole()async{
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    userRole = pref.getString("role");
+    print("USER ROLE: $userRole");
+  }
 
   void updateSelectedProductIds(List<String> updatedIds) {
     setState(() {
@@ -78,10 +93,16 @@ class _HomePageState extends ConsumerState<HomePage> {
   String selectedFilter = "A-Z";
   int count = 0;
 
+  late Future<List<Product>> _productFuture;
+
   @override
   void initState() {
     super.initState();
-    _fetchProducts();
+    Future.delayed(Duration.zero, () {
+      _fetchProducts();
+    });
+
+    // _productFuture = ApiService.fetchProducts();
 
     // Future.microtask(() => _fetchProducts());
     print("Init");
@@ -92,6 +113,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     // _requestStoragePermission(context);
     getStoredEmail();
     _loadFilter();
+    _fetchUserRole();
   }
 
   void _loadFilter() async {
@@ -99,7 +121,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     setState(() {
       selectedFilter = prefs.getString('selectedFilter') ?? 'A-Z';
     });
-
   }
 
   // bool _isFetched = false;
@@ -121,8 +142,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   //     });
   //   }
   // }
-
-
 
   // @override
   // void didChangeDependencies() {
@@ -283,9 +302,9 @@ class _HomePageState extends ConsumerState<HomePage> {
             // "Okay" or "Open Settings" button depending on the context
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Dismiss the dialog
+                Navigator.of(context).pop();
                 if (openSettings) {
-                  openAppSettings(); // Redirect user to app settings
+                  openAppSettings();
                 }
               },
               child: Text(
@@ -352,18 +371,27 @@ class _HomePageState extends ConsumerState<HomePage> {
         isLoading = true;
       });
 
-      List<Product> fetchedProducts = await ApiService.fetchProducts();
+      final token = ref.read(userProvider)?['token'];
+
+      if (token == null || token.isEmpty) {
+        print("Error: Token is missing");
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
+      List<Product> fetchedProducts = await ApiService.fetchProducts(token);
 
       print("API RESPONSE: $fetchedProducts");
 
-      if(mounted){
+      if (mounted) {
         setState(() {
           products = fetchedProducts;
           filteredProducts = List.from(products);
           isLoading = false;
         });
       }
-
     } catch (e) {
       print('Error fetching products: $e');
       setState(() {
@@ -371,34 +399,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       });
     }
   }
-
-  // Future<void> _fetchProducts({int skip = 0, int take = 6}) async {
-  //   try {
-  //     setState(() {
-  //       isLoading = true;
-  //     });
-  //
-  //     // Fetch the products with pagination
-  //     List<Product> fetchedProducts = await ApiService.fetchProducts(
-  //       skip: skip,
-  //       take: take,
-  //     );
-  //
-  //     print("API RESPONSE: $fetchedProducts");
-  //
-  //     setState(() {
-  //       products.addAll(fetchedProducts);
-  //       filteredProducts = products;
-  //       isLoading = false;
-  //       totalPages = (fetchedProducts.length / take).ceil();
-  //     });
-  //   } catch (e) {
-  //     print('Error fetching products: $e');
-  //     setState(() {
-  //       isLoading = false;
-  //     });
-  //   }
-  // }
 
   void _loadMoreProducts() {
     if (!isLoading && currentPage < totalPages) {
@@ -488,10 +488,14 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Future<void> _deleteProduct(BuildContext context) async {
     try {
+      SharedPreferences pref = await SharedPreferences.getInstance();
+      final token = pref.getString("token");
       print("IDSsss:${selectedProductIds}");
-      final response = await ApiService.deleteProducts([
-        selectedProductIds.toString(),
-      ]);
+
+      final response = await ApiService.deleteProducts(
+        selectedProductIds,
+        token!,
+      );
 
       if (response.statusCode == 200) {
         Navigator.of(context).pop(); // Close dialog
@@ -499,15 +503,14 @@ class _HomePageState extends ConsumerState<HomePage> {
           context,
           MaterialPageRoute(builder: (context) => HomePage()),
         );
+        _fetchProducts();
       } else {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Failed to delete product")));
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      print("Error while deletong product: $e");
     }
   }
 
@@ -557,11 +560,15 @@ class _HomePageState extends ConsumerState<HomePage> {
       case 'Price: Low to High':
         productsCopy.sort((a, b) => a.rate.compareTo(b.rate));
         break;
+      default:
+        productsCopy = List.from(products);
     }
 
     setState(() {
-      filteredProducts = productsCopy;
+      filteredProducts = [...productsCopy]; // ✅ Assign new list reference
     });
+    print("🔄 Filter applied: $filter");
+    print("📌 Filtered Products Count: ${filteredProducts.length}");
   }
 
   bool get isAllSelected {
@@ -571,30 +578,34 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Future<void> getStoredEmail() async {
     SharedPreferences sp = await SharedPreferences.getInstance();
-    storedEmail = sp.getString("email");
+    storedEmail = sp.getString("email") ?? "No Email Found";
+    storedName = sp.getString("name") ?? "No Name Found";
+
+    print("Stored Email: ${storedEmail!}");
+    print("Stored Name: ${storedName!}");
   }
 
-  void _navigateToEditPage(Product product) async {
-    final updatedProduct = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditProductPage(productData: product),
-      ),
-    );
-
-    if (updatedProduct != null) {
-      ref.read(productProvider.notifier).updateProduct(updatedProduct);
-      // setState(() {
-      //   // Find and update the edited product in the list
-      //   int index = filteredProducts.indexWhere(
-      //         (p) => p.id == updatedProduct.id,
-      //   );
-      //   if (index != -1) {
-      //     filteredProducts[index] = updatedProduct;
-      //   }
-      // });
-    }
-  }
+  // void _navigateToEditPage(Product product) async {
+  //   final updatedProduct = await Navigator.push(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (context) => EditProductPage(productData: product),
+  //     ),
+  //   );
+  //
+  //   if (updatedProduct != null) {
+  //     ref.read(productProvider.notifier).updateProduct(updatedProduct);
+  //     // setState(() {
+  //     //   // Find and update the edited product in the list
+  //     //   int index = filteredProducts.indexWhere(
+  //     //         (p) => p.id == updatedProduct.id,
+  //     //   );
+  //     //   if (index != -1) {
+  //     //     filteredProducts[index] = updatedProduct;
+  //     //   }
+  //     // });
+  //   }
+  // }
 
   void _updateProductList(Product updatedProduct) {
     setState(() {
@@ -622,6 +633,15 @@ class _HomePageState extends ConsumerState<HomePage> {
       selectedFilter = newFilter;
     });
   }
+
+  Future<int> getUserId() async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    final idString = pref.getString("userId");
+    print("USER ID GETTING: $idString");
+
+    return int.tryParse(idString ?? "0") ?? 0;
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -790,46 +810,58 @@ class _HomePageState extends ConsumerState<HomePage> {
                 if (choice == 'Refresh') {
                   _refreshProducts();
                 } else if (choice == 'Add Person') {
-                  SharedPreferences sp = await SharedPreferences.getInstance();
-                  String? storedEmail = sp.getString("email");
-                  String? storedPassword = sp.getString("password");
-
-                  if (storedEmail == "narayan" &&
-                      storedPassword == "kachiwala") {
+                  if (userRole == 'admin') {
                     final result = await Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => AddPersonPage()),
+                      MaterialPageRoute(builder: (context) => GetUserDetails()),
                     );
+                    if (!mounted) return;
                     if (result == true) {
                       _refreshProducts();
                     }
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("Access Denied: Unauthorized User"),
-                      ),
+                      SnackBar(content: Text("Access Denied: Unauthorized User")),
                     );
+                  }
+                } else if (choice == 'Change Password') {
+                  final userId = await getUserId();
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => ChangePasswordPage(userId: userId)),
+                  );
+                  if (!mounted) return;
+                  if (result == true) {
+                    _refreshProducts();
                   }
                 }
               },
-              itemBuilder:
-                  (BuildContext context) => <PopupMenuEntry<String>>[
-                    const PopupMenuItem<String>(
-                      value: 'Refresh',
-                      child: ListTile(
-                        leading: Icon(Icons.refresh, color: Colors.blue),
-                        title: Text('Refresh'),
-                      ),
+              itemBuilder: (BuildContext context) => [
+                const PopupMenuItem<String>(
+                  value: 'Refresh',
+                  child: ListTile(
+                    leading: Icon(Icons.refresh, color: Colors.blue),
+                    title: Text('Refresh'),
+                  ),
+                ),
+                if (userRole == 'admin')
+                  const PopupMenuItem<String>(
+                    value: 'Add Person',
+                    child: ListTile(
+                      leading: Icon(Icons.person_add, color: Colors.green),
+                      title: Text('Add New Person'),
                     ),
-                    const PopupMenuItem<String>(
-                      value: 'Add Person',
-                      child: ListTile(
-                        leading: Icon(Icons.person_add, color: Colors.green),
-                        title: Text('Add New Person'),
-                      ),
-                    ),
-                  ],
+                  ),
+                const PopupMenuItem<String>(
+                  value: 'Change Password',
+                  child: ListTile(
+                    leading: Icon(Icons.lock, color: Colors.orange),
+                    title: Text('Change Password'),
+                  ),
+                ),
+              ],
             ),
+
 
             // IconButton(
             //   icon: const Icon(Icons.refresh),
@@ -934,6 +966,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                             ),
                           )
                           : GridView.builder(
+                            key: ValueKey(selectedFilter),
                             controller: _scrollController,
                             gridDelegate:
                                 const SliverGridDelegateWithFixedCrossAxisCount(
@@ -974,17 +1007,33 @@ class _HomePageState extends ConsumerState<HomePage> {
                                     context,
                                     MaterialPageRoute(
                                       builder:
-                                          (context) => EditProductPage(
-                                            productData: product,
+                                          (context) => ProductDetailScreen(
+                                            product: product,
                                             // onProductUpdated: (Product newProduct) {
                                             //   _updateProductList(newProduct);
                                             // },
                                           ),
                                     ),
                                   );
+                                  // if (updatedProduct != null) {
+                                  //   await _refreshProducts();
+                                  // }
                                   if (updatedProduct != null) {
-                                    print("⬅️ Returned Updated Product: ${updatedProduct.id}");
-                                    ref.read(productProvider.notifier).updateProduct(updatedProduct);
+                                    setState(() {
+                                      int index = products.indexWhere(
+                                        (p) => p.id == updatedProduct.id,
+                                      );
+                                      if (index == -1) {
+                                        products[index] = updatedProduct;
+                                      }
+                                    });
+                                    print(
+                                      "⬅️ Returned Updated Product: ${updatedProduct.id}",
+                                    );
+                                    ref
+                                        .read(productProvider.notifier)
+                                        .updateProduct(updatedProduct);
+                                    _refreshProducts();
                                   }
                                 },
 
@@ -1119,6 +1168,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
                           if (confirmDelete == true) {
                             await _deleteProduct(context);
+                            await _fetchProducts();
                           }
                         }
                       },
@@ -1297,22 +1347,44 @@ class _HomePageState extends ConsumerState<HomePage> {
               if (choice == 'Refresh') {
                 _refreshProducts();
               } else if (choice == 'Add Person') {
-                SharedPreferences sp = await SharedPreferences.getInstance();
-                String? storedEmail = sp.getString("email");
-                String? storedPassword = sp.getString("password");
+                await getStoredEmail();
 
-                if (storedEmail == "narayan" && storedPassword == "kachiwala") {
+                print("DEBUG: storedEmail = $storedEmail");
+                print("DEBUG: storedName = $storedName");
+
+                if (userRole == "admin") {
+
+                  if (!mounted) return;
+
                   final result = await Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => AddPersonPage()),
+                    MaterialPageRoute(builder: (context) => GetUserDetails()),
                   );
+
+                  if (!mounted) return;
                   if (result == true) {
                     _refreshProducts();
                   }
                 } else {
+                  print("Access Denied: Unauthorized User");
+
+                  if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Access Denied: Unauthorized User")),
+                    SnackBar(
+                      content: Text("Access Denied: Unauthorized User"),
+                    ),
                   );
+                }
+              } else if (choice == 'Change Password') {
+                final userId = await getUserId();
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ChangePasswordPage(userId: userId,)),
+                );
+
+                if (!mounted) return;
+                if (result == true) {
+                  _refreshProducts();
                 }
               }
             },
@@ -1325,11 +1397,36 @@ class _HomePageState extends ConsumerState<HomePage> {
                       title: Text('Refresh'),
                     ),
                   ),
-                  const PopupMenuItem<String>(
-                    value: 'Add Person',
-                    child: ListTile(
-                      leading: Icon(Icons.person_add, color: Colors.green),
-                      title: Text('Add New Person'),
+                  if (userRole == 'admin')
+                    const PopupMenuItem<String>(
+                      value: 'Add Person',
+                      child: ListTile(
+                        leading: Icon(Icons.person_add, color: Colors.green),
+                        title: Text('Add New Person'),
+                      ),
+                    ),
+                  PopupMenuItem<String>(
+                    value: 'Change Password',
+                    child: FutureBuilder<int>(
+                      future: getUserId(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return ListTile(
+                            leading: CircularProgressIndicator(),
+                            title: Text('Change Password'),
+                          );
+                        }
+                        if (snapshot.hasError) {
+                          return ListTile(
+                            leading: Icon(Icons.error, color: Colors.red),
+                            title: Text('Error fetching user ID'),
+                          );
+                        }
+                        return ListTile(
+                          leading: Icon(Icons.password, color: Colors.green),
+                          title: Text('Change Password'),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -1421,131 +1518,84 @@ class _HomePageState extends ConsumerState<HomePage> {
 
               // Product Grid View
               Expanded(
-                child: FutureBuilder<List<Product>>(
-                  future: ApiService.fetchProducts(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.hasError) {
-                      return Center(
-                        child: Text(
-                          "Error: ${snapshot.error}",
-                          style: TextStyle(color: Colors.red, fontSize: 18),
-                        ),
-                      );
-                    }
-                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return const Center(
-                        child: Text(
-                          "No Products Found",
-                          style: TextStyle(
-                            fontSize: 22,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.bold,
+                child:
+                    filteredProducts.isEmpty
+                        ? const Center(
+                          child: Text(
+                            "No Products Found",
+                            style: TextStyle(
+                              fontSize: 22,
+                              color: Colors.grey,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                      );
-                    }
+                        )
+                        : GridView.builder(
+                          controller: _scrollController,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 8.0,
+                                crossAxisSpacing: 8.0,
+                                childAspectRatio: 3 / 4,
+                              ),
+                          itemCount:
+                              filteredProducts.length + (isLoading ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index == filteredProducts.length && isLoading) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
+                            final product = filteredProducts[index];
 
-                    filteredProducts = snapshot.data!; // Update product list
+                            return ProductCard(
+                              product: product,
+                              index: index,
+                              isGlobalSelected: isSelectAll,
+                              isSelectAll: isSelectAll,
+                              onTap: () {
+                                setState(() {
+                                  if (!selectedProductIds.contains(
+                                    product.id,
+                                  )) {
+                                    selectedProductIds.add(product.id);
+                                  } else {
+                                    selectedProductIds.remove(product.id);
+                                  }
+                                });
+                              },
 
-                    return GridView.builder(
-                      controller: _scrollController,
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 8.0,
-                        crossAxisSpacing: 8.0,
-                        childAspectRatio: 3 / 4,
-                      ),
-                      itemCount: filteredProducts.length + (isLoading ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index == filteredProducts.length && isLoading) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
-                        final product = filteredProducts[index];
+                              // onTap: () async {
+                              //   final updatedProduct = await Navigator.push(
+                              //     context,
+                              //     MaterialPageRoute(
+                              //       builder:
+                              //           (context) => ProductDetailScreen(
+                              //             product: product,
+                              //             // onProductUpdated: (Product newProduct) {
+                              //             //   _updateProductList(newProduct);
+                              //             // },
+                              //           ),
+                              //     ),
+                              //   );
+                              //   if (updatedProduct != null) {
+                              //     print(
+                              //       "⬅️ Returned Updated Product: ${updatedProduct.id}",
+                              //     );
+                              //     ref
+                              //         .read(productProvider.notifier)
+                              //         .updateProduct(updatedProduct);
+                              //   }
+                              // },
 
-                        return ProductCard(
-                          product: product,
-                          index: index,
-                          isGlobalSelected: isSelectAll,
-                          isSelectAll: isSelectAll,
-                          onTap: () {
-                            setState(() {
-                              if (!selectedProductIds.contains(product.id)) {
-                                selectedProductIds.add(product.id);
-                              } else {
-                                selectedProductIds.remove(product.id);
-                              }
-                            });
+                              updateCounter: updateCounter,
+                              selectedProductIds: selectedProductIds,
+                              // updateSelectedProductIds: updateSelectedProductIds,
+                            );
                           },
-                          updateCounter: updateCounter,
-                          selectedProductIds: selectedProductIds,
-                        );
-                      },
-                    );
-                  },
-                ),
+                        ),
               ),
-
-
-              // Expanded(
-              //   child:
-              //       filteredProducts.isEmpty
-              //           ? const Center(
-              //             child: Text(
-              //               "No Products Found",
-              //               style: TextStyle(
-              //                 fontSize: 22,
-              //                 color: Colors.grey,
-              //                 fontWeight: FontWeight.bold,
-              //               ),
-              //             ),
-              //           )
-              //           : GridView.builder(
-              //             controller: _scrollController,
-              //             gridDelegate:
-              //                 const SliverGridDelegateWithFixedCrossAxisCount(
-              //                   crossAxisCount: 2,
-              //                   mainAxisSpacing: 8.0,
-              //                   crossAxisSpacing: 8.0,
-              //                   childAspectRatio: 3 / 4,
-              //                 ),
-              //             itemCount:
-              //                 filteredProducts.length + (isLoading ? 1 : 0),
-              //             itemBuilder: (context, index) {
-              //               if (index == filteredProducts.length && isLoading) {
-              //                 return const Center(
-              //                   child: CircularProgressIndicator(),
-              //                 );
-              //               }
-              //               final product = filteredProducts[index];
-              //
-              //               return ProductCard(
-              //                 product: product,
-              //                 index: index,
-              //                 isGlobalSelected: isSelectAll,
-              //                 isSelectAll: isSelectAll,
-              //                 onTap: () {
-              //                   setState(() {
-              //                     if (!selectedProductIds.contains(
-              //                       product.id,
-              //                     )) {
-              //                       selectedProductIds.add(product.id);
-              //                     } else {
-              //                       selectedProductIds.remove(product.id);
-              //                     }
-              //                   });
-              //                 },
-              //                 updateCounter: updateCounter,
-              //                 selectedProductIds: selectedProductIds,
-              //                 // updateSelectedProductIds: updateSelectedProductIds,
-              //               );
-              //             },
-              //           ),
-              // ),
             ],
           ),
         ),
@@ -1666,19 +1716,32 @@ class _HomePageState extends ConsumerState<HomePage> {
                         );
 
                         if (confirmDelete == true) {
-                          try {
-                            var response = await ApiService.deleteProducts(
-                              selectedProductIds,
-                            );
-                            if (response.statusCode == 200) {
-                              setState(() {
-                                selectedProductIds = [];
-                                counterValue = 0;
-                              });
+                          SharedPreferences pref =
+                              await SharedPreferences.getInstance();
+                          final token = pref.getString("token");
+                          if (token != null) {
+                            try {
+                              var response = await ApiService.deleteProducts(
+                                selectedProductIds,
+                                token,
+                              );
+                              if (response.statusCode == 200) {
+                                setState(() {
+                                  selectedProductIds = [];
+                                  counterValue = 0;
+                                });
+                                _refreshProducts();
+                              }
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('An error occurred: $e'),
+                                ),
+                              );
                             }
-                          } catch (e) {
+                          } else {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('An error occurred: $e')),
+                              SnackBar(content: Text('access not provide')),
                             );
                           }
                         }

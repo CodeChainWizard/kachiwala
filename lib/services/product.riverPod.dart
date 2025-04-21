@@ -6,15 +6,16 @@ import 'api_service.dart'; // Import your API service
 class ProductNotifier extends StateNotifier<List<Product>> {
   ProductNotifier() : super([]);
 
-  Future<void> fetchProducts() async {
-    try {
-      final fetchedProducts = await ApiService.fetchProducts();
-      state = fetchedProducts; // Updates UI automatically
-      print("UI UPADTE: $state");
-    } catch (e) {
-      print('Error fetching products: $e');
-    }
-  }
+  // Future<void> fetchProducts() async {
+  //   try {
+  //     final token
+  //     final fetchedProducts = await ApiService.fetchProducts();
+  //     state = fetchedProducts; // Updates UI automatically
+  //     print("UI UPADTE: $state");
+  //   } catch (e) {
+  //     print('Error fetching products: $e');
+  //   }
+  // }
 
   void addProduct(Product newProduct) {
     state = [...state, newProduct];

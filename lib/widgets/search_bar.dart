@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:newprg/models/product.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CustomSearchBar extends StatefulWidget {
   final Function(List<Product>) onSearchResultsUpdated;
@@ -25,14 +26,29 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
 
   bool isTextFieldFocused = false;
 
-  // Dropdown values
   String selectedFilter = 'All';
   final List<String> filterOptions = ['All', 'Type', 'Price', 'Meter', 'Color'];
+
+  void saveFilter(String filter) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selectedFilter', filter);
+  }
+
+  Future<void> loadFilter() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      selectedFilter = prefs.getString('selectedFilter') ?? 'All';
+    });
+  }
 
   @override
   void initState() {
     super.initState();
     filteredProducts = List.from(widget.products);
+
+    loadFilter().then((_) {
+      filterProducts(widget.searchController.text);
+    });
 
     _focusNode.addListener(() {
       setState(() {
@@ -102,7 +118,9 @@ class _CustomSearchBarState extends State<CustomSearchBar> {
                   onSelected: (String value) {
                     setState(() {
                       selectedFilter = value;
+                      saveFilter(value);
                     });
+                    filterProducts(widget.searchController.text);
                   },
                   itemBuilder: (BuildContext context) {
                     return filterOptions.map((String category) {

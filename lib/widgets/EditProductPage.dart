@@ -9,11 +9,13 @@ import 'dart:ui' as ui;
 import 'package:crop_image/crop_image.dart';
 import 'package:newprg/models/product.dart';
 import 'package:newprg/services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EditProductPage extends StatefulWidget {
   final Product productData;
+  final VoidCallback refreshProducts;
 
-  const EditProductPage({Key? key, required this.productData})
+  const EditProductPage({Key? key, required this.productData, required this.refreshProducts})
     : super(key: key);
 
   @override
@@ -113,6 +115,10 @@ class _EditProductPageState extends State<EditProductPage> {
     setState(() => isLoading = true);
 
     try {
+      SharedPreferences pref = await SharedPreferences.getInstance();
+      final token = pref.getString("token");
+      final personName = pref.getString("name");
+
       List<MultipartFile> multipartImages =
           newImages.map((image) {
             return MultipartFile.fromBytes(image, filename: 'image.jpg');
@@ -130,37 +136,50 @@ class _EditProductPageState extends State<EditProductPage> {
         "packing": packingController.text,
         "existingImages": imageUrls,
         "images": multipartImages,
+        "person": personName!
       });
 
-      var response = await ApiService.updateProduct(
-        widget.productData.id.toString(),
-        formData,
-      );
 
-      if (response.statusCode == 200) {
-        Product updatedProduct = Product(
-          id: widget.productData.id,
-          name: nameController.text,
-          designNo: designNoController.text,
-          meter: meterController.text,
-          size: sizeController.text,
-          rate: int.parse(priceController.text),
-          type: typeController.text,
-          color: colorController.text,
-          packing: packingController.text,
-          code: "",
-          description: '',
-          imagePaths: [...imageUrls, ...newImages.map((_) => 'new_image_url')],
+
+      if(token != null){
+        var response = await ApiService.updateProduct(
+            widget.productData.id.toString(),
+            formData,
+            token
         );
 
-        Navigator.pop(context, updatedProduct);
-      } else {
-        _showDialog('Error', 'Update failed. Please try again.');
+        if (response.statusCode == 200) {
+          Product updatedProduct = Product(
+            id: widget.productData.id,
+            name: nameController.text,
+            designNo: designNoController.text,
+            meter: meterController.text,
+            size: sizeController.text,
+            rate: int.parse(priceController.text),
+            type: typeController.text,
+            color: colorController.text,
+            packing: packingController.text,
+            code: "",
+            description: '',
+            imagePaths: [...imageUrls, ...newImages.map((_) => 'new_image_url')],
+            person: personName
+          );
+
+          Navigator.pop(context, updatedProduct);
+          widget.refreshProducts();
+        } else {
+          _showDialog('Error', 'Update failed. Please try again.');
+        }
+      }else{
+        _showDialog('Error', 'Access not provide');
       }
+
+
     } catch (e) {
       _showDialog('Error', 'Error updating product: $e');
     } finally {
       setState(() => isLoading = false);
+      widget.refreshProducts();
     }
   }
 
@@ -238,7 +257,7 @@ class _EditProductPageState extends State<EditProductPage> {
               _buildTextField(typeController, "Type"),
               _buildTextField(colorController, "Color"),
               _buildTextField(packingController, "Packing"),
-      
+
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
                 child: ElevatedButton(
@@ -256,7 +275,7 @@ class _EditProductPageState extends State<EditProductPage> {
                   ),
                 ),
               ),
-      
+
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
@@ -275,13 +294,13 @@ class _EditProductPageState extends State<EditProductPage> {
                       },
                     );
                   }).toList(),
-      
+
                   ...newImages.asMap().entries.map((entry) {
                     final index = entry.key;
                     final image = entry.value;
                     return _buildImageWidget(image, index, '');
                   }).toList(),
-      
+
                   if (imageUrls.isNotEmpty || newImages.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 22.0),
@@ -297,7 +316,7 @@ class _EditProductPageState extends State<EditProductPage> {
                     ),
                 ],
               ),
-      
+
               SizedBox(height: 20),
               ElevatedButton(
                 onPressed: isLoading ? null : _updateProduct,
@@ -312,6 +331,7 @@ class _EditProductPageState extends State<EditProductPage> {
                     isLoading
                         ? CircularProgressIndicator(
                           valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+
                         )
                         : Text(
                           "Update Product",

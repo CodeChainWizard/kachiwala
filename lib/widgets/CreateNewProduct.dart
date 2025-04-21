@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'CropScreen.dart';
 
 class AddProductPage extends StatefulWidget {
@@ -57,29 +59,40 @@ class _AddProductPageState extends State<AddProductPage> {
 
   Future<void> _pickImage() async {
     FocusScope.of(context).unfocus();
-    try {
-      final pickedFile = await ImagePicker().pickImage(
-        source: ImageSource.gallery,
+
+    var status = await Permission.photos.request();
+    if (status.isDenied || status.isPermanentlyDenied) {
+      status = await Permission.storage.request();
+    }
+
+    if (!status.isGranted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Storage permission denied")),
       );
-      if (pickedFile != null) {
-        final imageBytes = await pickedFile.readAsBytes();
+      return;
+    }
 
-        // final compressed = await _compressImage(imageBytes);
-        // if (compressed != null) {
-        //   setState(() {
-        //     compressedImage = compressed;
-        //     images.add(compressed);
-        //   });
-        // }
-        setState(() {
-          images.add(imageBytes);
-        });
+    try {
+      final List<XFile>? pickedFiles = await ImagePicker().pickMultiImage(
+        imageQuality: 100,
+      );
 
+      if (pickedFiles != null && pickedFiles.isNotEmpty) {
+        for (var pickedFile in pickedFiles) {
+          final imageBytes = await pickedFile.readAsBytes();
+          setState(() {
+            images.add(imageBytes);
+          });
+        }
       }
     } catch (e) {
-      print("Error selecting image: $e");
+      print("Error selecting images: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error selecting images: $e")),
+      );
     }
   }
+
 
   Future<Uint8List?> _compressImage(Uint8List imageBytes) async {
     if (imageBytes.isEmpty) {
@@ -126,6 +139,10 @@ class _AddProductPageState extends State<AddProductPage> {
     setState(() => isLoading = true);
 
     try {
+
+      SharedPreferences pref1 = await SharedPreferences.getInstance();
+      final personName = pref1.getString("name");
+
       List<MultipartFile> multipartImages =
           images.map((image) {
             return MultipartFile.fromBytes(image!, filename: 'image.jpg');
@@ -141,18 +158,30 @@ class _AddProductPageState extends State<AddProductPage> {
         "color": Color.text,
         "packing": Paking.text,
         "images": multipartImages,
+        "person": personName
       });
 
-      var response = await ApiService.addProduct(formData);
+      SharedPreferences pref = await SharedPreferences.getInstance();
+      final token = pref.getString("token");
 
-      if (response.statusCode == 201) {
-        widget.onProductAdded();
-        Navigator.pop(context, true);
-      } else {
-        _showValidationDialog(
-          'Unable to add product. Please check your information or try again later.',
+      if(token != null){
+        var response = await ApiService.addProduct(formData, token);
+
+        if (response.statusCode == 201) {
+          widget.onProductAdded();
+          Navigator.pop(context, true);
+        } else {
+          _showValidationDialog(
+            'Unable to add product. Please check your information or try again later.',
+          );
+        }
+      }else{
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid Credentials')),
         );
       }
+
+
     } catch (e) {
       _showValidationDialog(
         'Something went wrong. Please check your input or try again later.',

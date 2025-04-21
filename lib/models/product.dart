@@ -11,9 +11,10 @@ class Product {
   final int rate;
   final String meter;
   final List<String>? imagePaths; // Updated to handle multiple images
+  final String person;
 
   Product({
-    required this.id, // Added id to the constructor
+    required this.id,
     required this.type,
     required this.code,
     required this.designNo,
@@ -25,11 +26,12 @@ class Product {
     required this.rate,
     required this.meter,
     this.imagePaths,
+    required this.person
   });
 
   @override
   String toString() {
-    return 'Product{id: $id, type: $type, code: $code, name: $name, description: $description, size: $size, color: $color, packing: $packing, rate: $rate, Meter: $meter, imagePaths: $imagePaths}';
+    return 'Product{id: $id, type: $type, code: $code, name: $name, description: $description, size: $size, color: $color, packing: $packing, rate: $rate, Meter: $meter, imagePaths: $imagePaths, person: $person}';
   }
 
 
@@ -49,6 +51,7 @@ class Product {
       imagePaths: (json['imagePaths'] as List<dynamic>?)
           ?.map((e) => e.toString())
           .toList(),
+      person: json['person'].toString(),
     );
   }
 
@@ -66,6 +69,7 @@ class Product {
       'rate': rate,
       'meter': meter,
       'imagePaths': imagePaths ?? [],
+      "person": person
     };
   }
 
@@ -82,6 +86,7 @@ class Product {
     int? rate,
     String? meter,
     List<String>? imagePaths,
+    String? person,
   }) {
     return Product(
       id: id ?? this.id,
@@ -96,6 +101,7 @@ class Product {
       rate: rate ?? this.rate,
       meter: meter ?? this.meter,
       imagePaths: imagePaths ?? this.imagePaths,
+      person: person ?? this.person
     );
   }
 }

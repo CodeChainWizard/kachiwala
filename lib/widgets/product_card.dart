@@ -44,13 +44,11 @@ class _ProductCardState extends ConsumerState<ProductCard> {
   Uint8List? compressedImage;
   bool isMultiSelectActive = false;
 
-  String email = "";
-
   @override
   void initState() {
     super.initState();
     _compressAndLoadImage();
-    getEmailFromSharedPref();
+    // getEmailFromSharedPref();
 
 
   }
@@ -62,12 +60,6 @@ class _ProductCardState extends ConsumerState<ProductCard> {
         widget.updateCounter(isSelected);
       }
     });
-  }
-
-
-  Future<void> getEmailFromSharedPref()async {
-    SharedPreferences pref = await SharedPreferences.getInstance();
-    email =  (pref.getString("email"))!;
   }
 
   Future<void> _compressAndLoadImage() async {
@@ -382,7 +374,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                                   Expanded(
                                     child: Tooltip(
                                       message:
-                                          email,
+                                          widget.product.person,
                                       child: RichText(
                                         overflow: TextOverflow.ellipsis,
                                         text: TextSpan(
@@ -397,7 +389,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                                             ),
                                             TextSpan(
                                               text:
-                                                  email,
+                                              widget.product.person,
                                               // The long name
                                               style: TextStyle(
                                                 fontSize:

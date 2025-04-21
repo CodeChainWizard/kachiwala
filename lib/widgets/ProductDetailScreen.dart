@@ -5,6 +5,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:newprg/home_page.dart';
 import 'package:newprg/services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/product.dart';
 import 'dart:typed_data';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -39,6 +40,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _product = widget.product;
     // print("PRODUCT ID: ${widget.product.id}");
   }
+
 
   @override
   void didChangeDependencies() {
@@ -114,36 +116,47 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Future<bool> _deleteProduct(BuildContext context) async {
     try {
-      print("IDSsss:${widget.product.id}");
-      final response = await ApiService.deleteProducts([
-        widget.product.id.toString(),
-      ]);
+      SharedPreferences pref = await SharedPreferences.getInstance();
+      final token = pref.getString("token");
+
+      if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Access not provided")),
+        );
+        return false;
+      }
+
+      print("Deleting Product ID: ${widget.product.id}");
+
+      final response = await ApiService.deleteProducts(
+        [widget.product.id.toString()],
+        token,
+      );
 
       if (response.statusCode == 200) {
-        Navigator.of(context).pop();
+        // Close the dialog
+        if (context.mounted) Navigator.of(context).pop();
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomePage()),
-        );
-
+        // Refresh product list in parent widget
         return true;
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Failed to delete product")));
-
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed to delete product")),
+          );
+        }
         return false;
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e")),
+        );
       }
       return false;
     }
   }
+
 
   @override
   void didUpdateWidget(covariant ProductDetailScreen oldWidget) {
@@ -161,6 +174,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_product.name),
+        leading: IconButton(
+          onPressed: () {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => HomePage()),
+              (route) => false,
+            );
+          },
+          icon: Icon(Icons.arrow_back),
+        ),
+
         actions: [
           Row(
             children: [
@@ -171,7 +195,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     context,
                     MaterialPageRoute(
                       builder:
-                          (context) => EditProductPage(productData: _product),
+                          (context) => EditProductPage(
+                            productData: _product,
+                            refreshProducts: () {},
+                          ),
                     ),
                   );
 
@@ -207,7 +234,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               //     }
               //   },
               // ),
-
               IconButton(
                 icon: const Icon(Icons.delete),
                 onPressed: () {
