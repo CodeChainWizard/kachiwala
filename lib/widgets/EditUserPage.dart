@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
@@ -7,10 +8,16 @@ class EditUserPage extends StatefulWidget {
   final String email;
   final String password;
 
-  EditUserPage({required this.userId, required this.name, required this.email, required this.password});
+  const EditUserPage({
+    super.key,
+    required this.userId,
+    required this.name,
+    required this.email,
+    required this.password,
+  });
 
   @override
-  _EditUserPageState createState() => _EditUserPageState();
+  State<EditUserPage> createState() => _EditUserPageState();
 }
 
 class _EditUserPageState extends State<EditUserPage> {
@@ -27,51 +34,116 @@ class _EditUserPageState extends State<EditUserPage> {
   }
 
   Future<void> _updateUser() async {
-    bool success = await ApiService.updateUser(
+    final success = await ApiService.updateUser(
       widget.userId,
       nameController.text,
       emailController.text,
-        passwordController.text
+      passwordController.text,
     );
 
-    if (success) {
-      Navigator.pop(context, true); // Return true to indicate success
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("User updated successfully!")),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to update user.")),
-      );
-    }
+    final snackBar = SnackBar(
+      content: Text(success ? "User updated successfully!" : "Failed to update user."),
+      backgroundColor: success ? Colors.green : Colors.redAccent,
+    );
+
+    if (success) Navigator.pop(context, true);
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.brown),
+      filled: true,
+      fillColor: const Color(0x22FFFDD0),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.brown),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF432B1A), width: 2),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Edit User")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: InputDecoration(labelText: "Name"),
-            ),
-            TextField(
-              controller: emailController,
-              decoration: InputDecoration(labelText: "Email"),
-            ),
-            TextField(
-              controller: passwordController,
-              decoration: InputDecoration(labelText: "Password"),
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _updateUser,
-              child: Text("Update"),
-            ),
-          ],
+      backgroundColor: const Color(0xFFF5F2E4),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF432B1A),
+        elevation: 4,
+        iconTheme: const IconThemeData(color: Color(0xFFFFFDD0)),
+        title: const Text(
+          "Edit User",
+          style: TextStyle(
+            color: Color(0xFFFFFDD0),
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+      ),
+      body: Center(
+        child: Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            // color: const Color(0xFFFFFDD0),
+            borderRadius: BorderRadius.circular(16),
+            // boxShadow: [
+            //   BoxShadow(
+            //     color: Colors.brown.withOpacity(0.2),
+            //     blurRadius: 10,
+            //     offset: const Offset(0, 6),
+            //   ),
+            // ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: _inputDecoration("Name"),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                decoration: _inputDecoration("Email"),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: _inputDecoration("Password"),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _updateUser,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF432B1A),
+                    foregroundColor: const Color(0xFFFFFDD0),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 6,
+                  ),
+                  child: const Text(
+                    "Update",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );

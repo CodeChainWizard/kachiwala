@@ -129,34 +129,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     });
   }
 
-  // bool _isFetched = false;
-  //
-  // @override
-  // void didChangeDependencies() {
-  //   super.didChangeDependencies();
-  //   print("didChangeDependencies called");
-  //
-  //   if (!_isFetched) {
-  //     _isFetched = true;
-  //     Future.microtask(() async {
-  //       print("Fetching products...");
-  //       await _fetchProducts();
-  //       if (mounted) {
-  //         setState(() {});
-  //         print("setState called after fetching products");
-  //       }
-  //     });
-  //   }
-  // }
-
-  // @override
-  // void didChangeDependencies() {
-  //   super.didChangeDependencies();
-  //   _fetchProducts();
-  //   print("DID");
-  //   setState(() {});
-  // }
-
   void toggleDropdown() {
     if (isDropdownOpen) {
       _overlayEntry?.remove();
@@ -667,10 +639,10 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     if (isLoading && products.isEmpty) {
       return Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xFFF5F2E4),
         appBar: AppBar(
           backgroundColor: Color(0xFF1D3557),
-          title: const Text('Kachiwala', style: TextStyle(color: Colors.white)),
+          title: const Text('P.V. Kachiwala', style: TextStyle(color: Colors.white)),
           leading: IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () async {
@@ -877,92 +849,112 @@ class _HomePageState extends ConsumerState<HomePage> {
           ],
         ),
 
-        body: RefreshIndicator(
-          onRefresh: _refreshProducts_RefreshIndi,
-          child: Padding(
-            padding: const EdgeInsets.all(5.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    // Search Bar
-                    Expanded(
-                      child: CustomSearchBar(
-                        onSearchResultsUpdated: (filteredList) {
-                          setState(() {
-                            filteredProducts = filteredList;
-                          });
-                          print("FILTER PRODUCT: $filteredProducts");
-                        },
-                        refreshProducts: () {
-                          setState(() {
-                            filteredProducts = List.from(products);
-                          });
-                        },
-                        products: products,
-                        searchController: _searchController,
-                      ),
+        body: Stack(
+          children: [
+            Positioned(
+              top: 250,
+              left: 140,
+              child: Opacity(
+                opacity: 0.2,
+                child: SizedBox(
+                  height: 150,
+                  width: 150,
+                  child: FittedBox(
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                    child: Image.asset(
+                      'assets/images/kachiwala.png',
                     ),
-
-                    // Dropdown for Filter
-                    Padding(
-                      padding: EdgeInsets.only(
-                        bottom: 8.0,
-                        top: 8.0,
-                        right: 3.0,
-                      ),
-                      child: SizedBox(
-                        height: 35,
-                        width: 35,
-                        child: Padding(
-                          padding: EdgeInsets.only(top: 3.0),
-                          child: PopupMenuButton<String>(
-                            icon: Icon(
-                              Icons.filter_list,
-                              color: Colors.black,
-                              size: 20,
-                            ),
-                            padding: EdgeInsets.zero,
-                            // Removes extra padding
-                            constraints: BoxConstraints(),
-                            // Prevents unnecessary expansion
-                            onSelected: (String newFilter) {
+                  ),
+                ),
+              ),
+            ),
+            RefreshIndicator(
+              onRefresh: _refreshProducts_RefreshIndi,
+              child: Padding(
+                padding: const EdgeInsets.all(5.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        // Search Bar
+                        Expanded(
+                          child: CustomSearchBar(
+                            onSearchResultsUpdated: (filteredList) {
                               setState(() {
-                                selectedFilter = newFilter;
+                                filteredProducts = filteredList;
                               });
-                              _applyFilter(newFilter);
-                              _applyFilter_SharedPref(newFilter);
+                              print("FILTER PRODUCT: $filteredProducts");
                             },
-                            itemBuilder: (BuildContext context) {
-                              return [
-                                'A-Z',
-                                'Z-A',
-                                'Price: High to Low',
-                                'Price: Low to High',
-                              ].map((String filter) {
-                                return PopupMenuItem<String>(
-                                  value: filter,
-                                  child: Text(
-                                    filter,
-                                    style: TextStyle(color: Colors.black54),
-                                  ),
-                                );
-                              }).toList();
+                            refreshProducts: () {
+                              setState(() {
+                                filteredProducts = List.from(products);
+                              });
                             },
+                            products: products,
+                            searchController: _searchController,
                           ),
                         ),
-                      ),
-                    ),
-                  ],
-                ),
 
-                // Product Grid View
-                Expanded(
-                  child: !hasFetchedOnce ? const Center(
-                    child: CircularProgressIndicator(),
-                  ):
+                        // Dropdown for Filter
+                        Padding(
+                          padding: EdgeInsets.only(
+                            bottom: 8.0,
+                            top: 8.0,
+                            right: 3.0,
+                          ),
+                          child: SizedBox(
+                            height: 35,
+                            width: 35,
+                            child: Padding(
+                              padding: EdgeInsets.only(top: 3.0),
+                              child: PopupMenuButton<String>(
+                                icon: Icon(
+                                  Icons.filter_list,
+                                  color: Colors.black,
+                                  size: 20,
+                                ),
+                                padding: EdgeInsets.zero,
+                                // Removes extra padding
+                                constraints: BoxConstraints(),
+                                // Prevents unnecessary expansion
+                                onSelected: (String newFilter) {
+                                  setState(() {
+                                    selectedFilter = newFilter;
+                                  });
+                                  _applyFilter(newFilter);
+                                  _applyFilter_SharedPref(newFilter);
+                                },
+                                itemBuilder: (BuildContext context) {
+                                  return [
+                                    'A-Z',
+                                    'Z-A',
+                                    'Price: High to Low',
+                                    'Price: Low to High',
+                                  ].map((String filter) {
+                                    return PopupMenuItem<String>(
+                                      value: filter,
+                                      child: Text(
+                                        filter,
+                                        style: TextStyle(color: Colors.black54),
+                                      ),
+                                    );
+                                  }).toList();
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Product Grid View
+                    Expanded(
+                      child: !hasFetchedOnce ? const Center(
+                        child: CircularProgressIndicator(),
+                      ):
                       filteredProducts.isEmpty
                           ? Center(
                         child: Column(
@@ -991,87 +983,89 @@ class _HomePageState extends ConsumerState<HomePage> {
                         ),
                       )
                           : GridView.builder(
-                            key: ValueKey(selectedFilter),
-                            controller: _scrollController,
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  mainAxisSpacing: 8.0,
-                                  crossAxisSpacing: 8.0,
-                                  childAspectRatio: 3 / 4,
+                        key: ValueKey(selectedFilter),
+                        controller: _scrollController,
+                        gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 8.0,
+                          crossAxisSpacing: 8.0,
+                          childAspectRatio: 3 / 4,
+                        ),
+                        itemCount:
+                        filteredProducts.length + (isLoading ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          if (index == filteredProducts.length &&
+                              isLoading) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          final product = filteredProducts[index];
+
+                          return ProductCard(
+                            product: product,
+                            index: index,
+                            isGlobalSelected: isSelectAll,
+                            isSelectAll: isSelectAll,
+                            // onTap: () {
+                            //   setState(() {
+                            //     if (!selectedProductIds.contains(
+                            //       product.id,
+                            //     )) {
+                            //       selectedProductIds.add(product.id);
+                            //     } else {
+                            //       selectedProductIds.remove(product.id);
+                            //     }
+                            //   });
+                            // },
+                            onTap: () async {
+                              final updatedProduct = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => ProductDetailScreen(
+                                    product: product,
+                                    // onProductUpdated: (Product newProduct) {
+                                    //   _updateProductList(newProduct);
+                                    // },
+                                  ),
                                 ),
-                            itemCount:
-                                filteredProducts.length + (isLoading ? 1 : 0),
-                            itemBuilder: (context, index) {
-                              if (index == filteredProducts.length &&
-                                  isLoading) {
-                                return const Center(
-                                  child: CircularProgressIndicator(),
-                                );
-                              }
-                              final product = filteredProducts[index];
-
-                              return ProductCard(
-                                product: product,
-                                index: index,
-                                isGlobalSelected: isSelectAll,
-                                isSelectAll: isSelectAll,
-                                // onTap: () {
-                                //   setState(() {
-                                //     if (!selectedProductIds.contains(
-                                //       product.id,
-                                //     )) {
-                                //       selectedProductIds.add(product.id);
-                                //     } else {
-                                //       selectedProductIds.remove(product.id);
-                                //     }
-                                //   });
-                                // },
-                                onTap: () async {
-                                  final updatedProduct = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (context) => ProductDetailScreen(
-                                            product: product,
-                                            // onProductUpdated: (Product newProduct) {
-                                            //   _updateProductList(newProduct);
-                                            // },
-                                          ),
-                                    ),
-                                  );
-                                  // if (updatedProduct != null) {
-                                  //   await _refreshProducts();
-                                  // }
-                                  if (updatedProduct != null) {
-                                    setState(() {
-                                      int index = products.indexWhere(
-                                        (p) => p.id == updatedProduct.id,
-                                      );
-                                      if (index == -1) {
-                                        products[index] = updatedProduct;
-                                      }
-                                    });
-                                    print(
-                                      "⬅️ Returned Updated Product: ${updatedProduct.id}",
-                                    );
-                                    ref
-                                        .read(productProvider.notifier)
-                                        .updateProduct(updatedProduct);
-                                    _refreshProducts();
-                                  }
-                                },
-
-                                updateCounter: updateCounter,
-                                selectedProductIds: selectedProductIds,
-                                // updateSelectedProductIds: updateSelectedProductIds,
                               );
+                              // if (updatedProduct != null) {
+                              //   await _refreshProducts();
+                              // }
+                              if (updatedProduct != null) {
+                                setState(() {
+                                  int index = products.indexWhere(
+                                        (p) => p.id == updatedProduct.id,
+                                  );
+                                  if (index == -1) {
+                                    products[index] = updatedProduct;
+                                  }
+                                });
+                                print(
+                                  "⬅️ Returned Updated Product: ${updatedProduct.id}",
+                                );
+                                ref
+                                    .read(productProvider.notifier)
+                                    .updateProduct(updatedProduct);
+                                _refreshProducts();
+                              }
                             },
-                          ),
+
+                            updateCounter: updateCounter,
+                            selectedProductIds: selectedProductIds,
+                            // updateSelectedProductIds: updateSelectedProductIds,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+          ]
         ),
 
         floatingActionButton:
@@ -1222,12 +1216,16 @@ class _HomePageState extends ConsumerState<HomePage> {
       );
     }
 
-    // Display product list when not loading
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Color(0xFFF5F2E4),
       appBar: AppBar(
-        backgroundColor: Color(0xFF1D3557),
-        title: const Text('Kachiwala', style: TextStyle(color: Colors.white)),
+        backgroundColor: Color(0xFF6F4F37),
+        title: const Text(
+          'P.V. Kachiwala',
+          style: TextStyle(
+            color: Colors.white,
+          ),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.logout, color: Colors.white),
           onPressed: () async {
@@ -1260,7 +1258,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ],
                     ),
                   ),
-
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.all(Radius.circular(15)),
                   ),
@@ -1268,10 +1265,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     TextButton(
                       style: TextButton.styleFrom(
                         backgroundColor: Colors.green,
-                        padding: EdgeInsets.symmetric(
-                          vertical: 10,
-                          horizontal: 20,
-                        ),
+                        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -1288,14 +1282,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                         ),
                       ),
                     ),
-
                     TextButton(
                       style: TextButton.styleFrom(
                         backgroundColor: Colors.blue,
-                        padding: EdgeInsets.symmetric(
-                          vertical: 10,
-                          horizontal: 20,
-                        ),
+                        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -1335,37 +1325,25 @@ class _HomePageState extends ConsumerState<HomePage> {
         actions: [
           filteredProducts.isNotEmpty
               ? OutlinedButton(
-                onPressed: _toggleSelectAll,
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.blue),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 5,
-                    horizontal: 12,
-                  ),
-                  // Padding
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10), // Rounded corners
-                  ),
-                  elevation: 5, // Shadow effect
-                ),
-                child: Text(
-                  isAllSelected ? 'Deselect All' : 'Select All',
-                  style: const TextStyle(
-                    fontSize: 16, // Text size
-                    fontWeight: FontWeight.bold, // Text weight
-                    color: Colors.white, // Text color
-                  ),
-                ),
-              )
-              // ? OutlinedButton(
-              //   onPressed: _toggleSelectAll,
-              //   style: OutlinedButton.styleFrom(
-              //     side: const BorderSide(color: Colors.blue),
-              //   ),
-              //   child: Text(isAllSelected ? 'Deselect All' : 'Selectsss All'),
-              // )
+            onPressed: _toggleSelectAll,
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Color(0xFFFFFDD0)),
+              padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 5,
+            ),
+            child: Text(
+              isAllSelected ? 'Deselect All' : 'Select All',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          )
               : SizedBox(),
-
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.white),
             onSelected: (String choice) async {
@@ -1374,26 +1352,16 @@ class _HomePageState extends ConsumerState<HomePage> {
               } else if (choice == 'Add Person') {
                 await getStoredEmail();
 
-                print("DEBUG: storedEmail = $storedEmail");
-                print("DEBUG: storedName = $storedName");
-
                 if (userRole == "admin") {
-
-                  if (!mounted) return;
-
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => GetUserDetails()),
                   );
 
-                  if (!mounted) return;
                   if (result == true) {
                     _refreshProducts();
                   }
                 } else {
-                  print("Access Denied: Unauthorized User");
-
-                  if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text("Access Denied: Unauthorized User"),
@@ -1404,161 +1372,177 @@ class _HomePageState extends ConsumerState<HomePage> {
                 final userId = await getUserId();
                 final result = await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ChangePasswordPage(userId: userId,)),
+                  MaterialPageRoute(builder: (context) => ChangePasswordPage(userId: userId)),
                 );
 
-                if (!mounted) return;
                 if (result == true) {
                   _refreshProducts();
                 }
               }
             },
-            itemBuilder:
-                (BuildContext context) => <PopupMenuEntry<String>>[
-                  const PopupMenuItem<String>(
-                    value: 'Refresh',
-                    child: ListTile(
-                      leading: Icon(Icons.refresh, color: Colors.blue),
-                      title: Text('Refresh'),
-                    ),
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              const PopupMenuItem<String>(
+                value: 'Refresh',
+                child: ListTile(
+                  leading: Icon(Icons.refresh, color: Colors.blue),
+                  title: Text('Refresh'),
+                ),
+              ),
+              if (userRole == 'admin')
+                const PopupMenuItem<String>(
+                  value: 'Add Person',
+                  child: ListTile(
+                    leading: Icon(Icons.person_add, color: Colors.green),
+                    title: Text('Add New Person'),
                   ),
-                  if (userRole == 'admin')
-                    const PopupMenuItem<String>(
-                      value: 'Add Person',
-                      child: ListTile(
-                        leading: Icon(Icons.person_add, color: Colors.green),
-                        title: Text('Add New Person'),
-                      ),
-                    ),
-                  PopupMenuItem<String>(
-                    value: 'Change Password',
-                    child: FutureBuilder<int>(
-                      future: getUserId(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return ListTile(
-                            leading: CircularProgressIndicator(),
-                            title: Text('Change Password'),
-                          );
-                        }
-                        if (snapshot.hasError) {
-                          return ListTile(
-                            leading: Icon(Icons.error, color: Colors.red),
-                            title: Text('Error fetching user ID'),
-                          );
-                        }
-                        return ListTile(
-                          leading: Icon(Icons.password, color: Colors.green),
-                          title: Text('Change Password'),
-                        );
-                      },
-                    ),
-                  ),
-                ],
+                ),
+              PopupMenuItem<String>(
+                value: 'Change Password',
+                child: FutureBuilder<int>(
+                  future: getUserId(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return ListTile(
+                        leading: CircularProgressIndicator(),
+                        title: Text('Change Password'),
+                      );
+                    }
+                    if (snapshot.hasError) {
+                      return ListTile(
+                        leading: Icon(Icons.error, color: Colors.red),
+                        title: Text('Error fetching user ID'),
+                      );
+                    }
+                    return ListTile(
+                      leading: Icon(Icons.password, color: Colors.green),
+                      title: Text('Change Password'),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-
-          // IconButton(
-          //   icon: const Icon(Icons.refresh),
-          //   onPressed: _refreshProducts,
-          // ),
         ],
       ),
 
-      body: RefreshIndicator(
-        onRefresh: _refreshProducts_RefreshIndi,
-        child: Padding(
-          padding: const EdgeInsets.all(5.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  // Search Bar
-                  Expanded(
-                    child: CustomSearchBar(
-                      onSearchResultsUpdated: (filteredList) {
-                        setState(() {
-                          filteredProducts = filteredList;
-                        });
-                        print("FILTER PRODUCT: $filteredProducts");
-                      },
-                      refreshProducts: () {
-                        setState(() {
-                          filteredProducts = List.from(products);
-                        });
-                      },
-                      products: products,
-                      searchController: _searchController,
-                    ),
+
+      body: Stack(
+        children:[
+
+          Positioned(
+            top: 250,
+            left: 140,
+            child: Opacity(
+              opacity: 0.2,
+              child: SizedBox(
+                height: 150,
+                width: 150,
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                  child: Image.asset(
+                    'assets/images/kachiwala.png',
                   ),
+                ),
+              ),
+            ),
+          ),
 
-                  // Dropdown for Filter
-                  Padding(
-                    padding: EdgeInsets.only(bottom: 8.0, top: 8.0, right: 3.0),
-                    child: SizedBox(
-                      height: 35,
-                      width: 35,
-
-                      child: Padding(
-                        padding: EdgeInsets.only(top: 3.0),
-                        child: PopupMenuButton<String>(
-                          icon: Icon(
-                            Icons.filter_list,
-                            color: Colors.black,
-                            size: 20,
-                          ),
-                          padding: EdgeInsets.zero,
-                          constraints: BoxConstraints(),
-                          // Prevents unnecessary expansion
-                          offset: Offset(0, 50),
-                          onSelected: (String newFilter) {
+          RefreshIndicator(
+            onRefresh: _refreshProducts_RefreshIndi,
+            child: Padding(
+              padding: const EdgeInsets.all(5.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      // Search Bar
+                      Expanded(
+                        child: CustomSearchBar(
+                          onSearchResultsUpdated: (filteredList) {
                             setState(() {
-                              selectedFilter = newFilter;
+                              filteredProducts = filteredList;
                             });
-                            _applyFilter(newFilter);
+                            print("FILTER PRODUCT: $filteredProducts");
                           },
-                          itemBuilder: (BuildContext context) {
-                            return [
-                              'A-Z',
-                              'Z-A',
-                              'Price: High to Low',
-                              'Price: Low to High',
-                            ].map((String filter) {
-                              return PopupMenuItem<String>(
-                                value: filter,
-                                child: Text(
-                                  filter,
-                                  style: TextStyle(color: Colors.black54),
-                                ),
-                              );
-                            }).toList();
+                          refreshProducts: () {
+                            setState(() {
+                              filteredProducts = List.from(products);
+                            });
                           },
+                          products: products,
+                          searchController: _searchController,
                         ),
                       ),
-                    ),
-                  ),
-                ],
-              ),
 
-              // Product Grid View
-              Expanded(
-                child:
+                      // Dropdown for Filter
+                      Padding(
+                        padding: EdgeInsets.only(bottom: 8.0, top: 8.0, right: 3.0),
+                        child: SizedBox(
+                          height: 35,
+                          width: 35,
+
+                          child: Padding(
+                            padding: EdgeInsets.only(top: 3.0),
+                            child: PopupMenuButton<String>(
+                              icon: Icon(
+                                Icons.filter_list,
+                                color: Colors.black,
+                                size: 20,
+                              ),
+                              padding: EdgeInsets.zero,
+                              constraints: BoxConstraints(),
+                              // Prevents unnecessary expansion
+                              offset: Offset(0, 50),
+                              onSelected: (String newFilter) {
+                                setState(() {
+                                  selectedFilter = newFilter;
+                                });
+                                _applyFilter(newFilter);
+                              },
+                              itemBuilder: (BuildContext context) {
+                                return [
+                                  'A-Z',
+                                  'Z-A',
+                                  'Price: High to Low',
+                                  'Price: Low to High',
+                                ].map((String filter) {
+                                  return PopupMenuItem<String>(
+                                    value: filter,
+                                    child: Text(
+                                      filter,
+                                      style: TextStyle(color: Colors.black54),
+                                    ),
+                                  );
+                                }).toList();
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Product Grid View
+                  Expanded(
+                    child:
                     filteredProducts.isEmpty
                         ?  Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Opacity(
-                            opacity: 0.5,
-                            child: Image.asset(
-                              'assets/images/kachiwala.png',
-                              width: 100,
-                              height: 100,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
+                          // Opacity(
+                          //   opacity: 0.5,
+                          //   child: Image.asset(
+                          //     'assets/images/kachiwala.png',
+                          //     width: 100,
+                          //     height: 100,
+                          //     fit: BoxFit.cover,
+                          //   ),
+                          // ),
                           SizedBox(height: 20),
                           const Text(
                             "No Products Found",
@@ -1572,74 +1556,76 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ),
                     )
                         : GridView.builder(
-                          controller: _scrollController,
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                mainAxisSpacing: 8.0,
-                                crossAxisSpacing: 8.0,
-                                childAspectRatio: 3 / 4,
-                              ),
-                          itemCount:
-                              filteredProducts.length + (isLoading ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (index == filteredProducts.length && isLoading) {
-                              return const Center(
-                                child: CircularProgressIndicator(),
-                              );
-                            }
-                            final product = filteredProducts[index];
+                      controller: _scrollController,
+                      gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 8.0,
+                        crossAxisSpacing: 8.0,
+                        childAspectRatio: 3 / 4,
+                      ),
+                      itemCount:
+                      filteredProducts.length + (isLoading ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == filteredProducts.length && isLoading) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+                        final product = filteredProducts[index];
 
-                            return ProductCard(
-                              product: product,
-                              index: index,
-                              isGlobalSelected: isSelectAll,
-                              isSelectAll: isSelectAll,
-                              onTap: () {
-                                setState(() {
-                                  if (!selectedProductIds.contains(
-                                    product.id,
-                                  )) {
-                                    selectedProductIds.add(product.id);
-                                  } else {
-                                    selectedProductIds.remove(product.id);
-                                  }
-                                });
-                              },
-
-                              // onTap: () async {
-                              //   final updatedProduct = await Navigator.push(
-                              //     context,
-                              //     MaterialPageRoute(
-                              //       builder:
-                              //           (context) => ProductDetailScreen(
-                              //             product: product,
-                              //             // onProductUpdated: (Product newProduct) {
-                              //             //   _updateProductList(newProduct);
-                              //             // },
-                              //           ),
-                              //     ),
-                              //   );
-                              //   if (updatedProduct != null) {
-                              //     print(
-                              //       "⬅️ Returned Updated Product: ${updatedProduct.id}",
-                              //     );
-                              //     ref
-                              //         .read(productProvider.notifier)
-                              //         .updateProduct(updatedProduct);
-                              //   }
-                              // },
-
-                              updateCounter: updateCounter,
-                              selectedProductIds: selectedProductIds,
-                              // updateSelectedProductIds: updateSelectedProductIds,
-                            );
+                        return ProductCard(
+                          product: product,
+                          index: index,
+                          isGlobalSelected: isSelectAll,
+                          isSelectAll: isSelectAll,
+                          onTap: () {
+                            setState(() {
+                              if (!selectedProductIds.contains(
+                                product.id,
+                              )) {
+                                selectedProductIds.add(product.id);
+                              } else {
+                                selectedProductIds.remove(product.id);
+                              }
+                            });
                           },
-                        ),
+
+                          // onTap: () async {
+                          //   final updatedProduct = await Navigator.push(
+                          //     context,
+                          //     MaterialPageRoute(
+                          //       builder:
+                          //           (context) => ProductDetailScreen(
+                          //             product: product,
+                          //             // onProductUpdated: (Product newProduct) {
+                          //             //   _updateProductList(newProduct);
+                          //             // },
+                          //           ),
+                          //     ),
+                          //   );
+                          //   if (updatedProduct != null) {
+                          //     print(
+                          //       "⬅️ Returned Updated Product: ${updatedProduct.id}",
+                          //     );
+                          //     ref
+                          //         .read(productProvider.notifier)
+                          //         .updateProduct(updatedProduct);
+                          //   }
+                          // },
+
+                          updateCounter: updateCounter,
+                          selectedProductIds: selectedProductIds,
+                          // updateSelectedProductIds: updateSelectedProductIds,
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+        ]
       ),
 
       floatingActionButton:
@@ -1807,8 +1793,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                     // ),
                   );
                 },
-                backgroundColor: Color(0xFF1D3557),
-                child: Icon(Icons.add, color: Colors.white),
+                backgroundColor: Color(0xFF6F4E37),
+                child: Icon(Icons.add, color: Color(0xFFFFFDD0)),
               ),
     );
   }

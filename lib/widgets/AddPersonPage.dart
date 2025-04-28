@@ -137,10 +137,11 @@ class _AddPersonPageState extends State<AddPersonPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0xFFF5F2E4),
       appBar: AppBar(
-        title: const Text('Add Person', style: TextStyle(color: Colors.white)),
-        backgroundColor: Color(0xFF1D3557),
-        iconTheme: IconThemeData(color: Colors.white),
+        backgroundColor: Color(0xFF6F4E37),
+        title: const Text('Add Person', style: TextStyle(color: Color(0xFFF5DEB3))),
+        iconTheme: IconThemeData(color: Color(0xFFF5DEB3)),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -246,11 +247,11 @@ class _AddPersonPageState extends State<AddPersonPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8.0),
                     ),
-                    backgroundColor: Color(0xFF1D3557),
+                    backgroundColor: Color(0xFF432B1A),
                   ),
                   child: const Text(
                     'Add Person',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(color: Color(0xFFF3EBCB)),
                   ),
                 ),
               ],

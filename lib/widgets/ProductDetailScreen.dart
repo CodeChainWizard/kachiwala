@@ -172,8 +172,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Widget build(BuildContext context) {
     final imagePaths = widget.product.imagePaths ?? [];
     return Scaffold(
+      backgroundColor: Color(0xFFF5F2E4),
       appBar: AppBar(
-        title: Text(_product.name),
+        backgroundColor: Color(0xFF6F4F37),
+        iconTheme: IconThemeData(color: Color(0xFFFFFDD0)),
+        title: Text(_product.name, style: TextStyle(color: Colors.white),),
         leading: IconButton(
           onPressed: () {
             Navigator.pushAndRemoveUntil(
@@ -234,6 +237,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               //     }
               //   },
               // ),
+
               IconButton(
                 icon: const Icon(Icons.delete),
                 onPressed: () {
@@ -487,12 +491,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               const SizedBox(height: 30),
               Text(
                 "Product Details",
-                style: TextStyle(fontSize: 15.0, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 3),
               Table(
                 border: TableBorder.all(color: Colors.black54),
-                // Optional: Adds border to the table
                 children: [
                   TableRow(
                     children: [
@@ -633,6 +636,48 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         padding: const EdgeInsets.all(8.0),
                         child: Text(
                           _product.packing ?? "NULL DATA",
+                          style: const TextStyle(
+                            fontSize: 20,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  TableRow(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: const Text(
+                          'Price Per Meter',
+                          style: TextStyle(fontSize: 20, color: Colors.grey),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          _product.meterPerPrice.toString() ?? "0.0",
+                          style: const TextStyle(
+                            fontSize: 20,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  TableRow(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: const Text(
+                          'Person',
+                          style: TextStyle(fontSize: 20, color: Colors.grey),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          _product.person ?? "NULL DATA",
                           style: const TextStyle(
                             fontSize: 20,
                             color: Colors.black87,

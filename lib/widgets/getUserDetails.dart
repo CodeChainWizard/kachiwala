@@ -128,14 +128,32 @@ class _GetUserDetailsState extends State<GetUserDetails> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0xFFF5F2E4),
       appBar: AppBar(
-        title: Text("User Details"),
+        backgroundColor: Color(0xFF6F4E37),
+        title: Text("User Details", style: TextStyle(color: Color(0xFFF5DEB3)),),
+        iconTheme: IconThemeData(color: Color(0xFFF5DEB3)),
         actions: [
           ElevatedButton.icon(
-            icon: Icon(Icons.add),
-            label: Text("Add New User"),
             onPressed: _navigateToAddUser,
+            icon: const Icon(Icons.add, color: Color(0xFF6F4E37)), // Coffee icon color
+            label: const Text(
+              "Add New User",
+              style: TextStyle(
+                color: Color(0xFF6F4E37), // Coffee text color
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFFF5DEB3), // Light cream color
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              elevation: 3,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
           ),
+
         ],
       ),
       body: Padding(
@@ -153,7 +171,7 @@ class _GetUserDetailsState extends State<GetUserDetails> {
                   },
                   children: [
                     TableRow(
-                      decoration: BoxDecoration(color: Colors.grey[300]),
+                      decoration: const BoxDecoration(color: Color(0xFFD7CCC8)),
                       children: const [
                         Padding(
                           padding: EdgeInsets.all(8.0),

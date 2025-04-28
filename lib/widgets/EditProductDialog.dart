@@ -46,13 +46,14 @@ class _EditProductDialogState extends State<EditProductDialog> {
   bool isImagePicked = false;
 
   String? token;
+
   @override
   void initState() {
     super.initState();
     getToken();
   }
 
-  void getToken() async{
+  void getToken() async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     token = pref.getString("token");
   }
@@ -98,12 +99,10 @@ class _EditProductDialogState extends State<EditProductDialog> {
         "images": multipartImages,
       });
 
-
-
       var response = await ApiService.updateProduct(
         widget.productData.id,
         formData,
-          token!
+        token!,
       );
 
       if (response.statusCode == 200) {
@@ -133,8 +132,17 @@ class _EditProductDialogState extends State<EditProductDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Edit Product'),
-      content: SizedBox(
+      titlePadding: EdgeInsets.zero,
+      title: const Text(
+        'Edit Product',
+        style: TextStyle(
+          color: Color(0xFFFFFDD0), // Cream text color
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      content: Container(
+        color: const Color(0xFF6F4E37),
         width: MediaQuery.of(context).size.width * 0.8,
         height: MediaQuery.of(context).size.width * 0.7,
         child: PageView(
@@ -213,39 +221,39 @@ class _EditProductDialogState extends State<EditProductDialog> {
                         final image = entry.value;
                         return image != null
                             ? Stack(
-                          children: [
-                            Image.memory(
-                              image,
-                              height: 80,
-                              width: 80,
-                              fit: BoxFit.cover,
-                            ),
-                            Positioned(
-                              top: 0,
-                              right: 0,
-                              child: GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    images.removeAt(index);
-                                    isImagePicked = image.isNotEmpty;
-                                  });
-                                },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.red,
-                                  ),
-                                  padding: const EdgeInsets.all(4),
-                                  child: const Icon(
-                                    Icons.remove,
-                                    color: Colors.white,
-                                    size: 16,
+                              children: [
+                                Image.memory(
+                                  image,
+                                  height: 80,
+                                  width: 80,
+                                  fit: BoxFit.cover,
+                                ),
+                                Positioned(
+                                  top: 0,
+                                  right: 0,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        images.removeAt(index);
+                                        isImagePicked = image.isNotEmpty;
+                                      });
+                                    },
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.red,
+                                      ),
+                                      padding: const EdgeInsets.all(4),
+                                      child: const Icon(
+                                        Icons.remove,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
-                          ],
-                        )
+                              ],
+                            )
                             : SizedBox();
                       }).toList(),
 
@@ -288,38 +296,38 @@ class _EditProductDialogState extends State<EditProductDialog> {
       actions: [
         TextButton(
           onPressed:
-          isLoading
-              ? null
-              : () {
-            if (_currentPage == 0) {
-              Navigator.pop(context);
-            } else {
-              _pageController.previousPage(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
-            }
-          },
+              isLoading
+                  ? null
+                  : () {
+                    if (_currentPage == 0) {
+                      Navigator.pop(context);
+                    } else {
+                      _pageController.previousPage(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    }
+                  },
           child: Text(_currentPage == 0 ? 'Cancel' : 'Back'),
         ),
         ElevatedButton(
           onPressed:
-          isLoading
-              ? null
-              : () async {
-            if (_currentPage == 0) {
-              _pageController.nextPage(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
-            } else {
-              await _updateProduct();
-            }
-          },
+              isLoading
+                  ? null
+                  : () async {
+                    if (_currentPage == 0) {
+                      _pageController.nextPage(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    } else {
+                      await _updateProduct();
+                    }
+                  },
           child:
-          isLoading
-              ? CircularProgressIndicator(color: Colors.white)
-              : Text(_currentPage == 0 ? 'Next' : 'Edit Product'),
+              isLoading
+                  ? CircularProgressIndicator(color: Colors.white)
+                  : Text(_currentPage == 0 ? 'Next' : 'Edit Product'),
         ),
       ],
     );

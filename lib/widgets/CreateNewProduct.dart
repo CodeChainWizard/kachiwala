@@ -14,35 +14,24 @@ class AddProductPage extends StatefulWidget {
   final VoidCallback onProductAdded;
 
   const AddProductPage({Key? key, required this.onProductAdded})
-    : super(key: key);
+      : super(key: key);
 
   @override
   _AddProductPageState createState() => _AddProductPageState();
 }
 
 class _AddProductPageState extends State<AddProductPage> {
-  // final typeController = TextEditingController();
-  // final codeController = TextEditingController();
-  // final designController = TextEditingController();
-  // final nameController = TextEditingController();
-  // final descriptionController = TextEditingController();
-  // final sizeController = TextEditingController();
-  // final colorController = TextEditingController();
-  // final packingController = TextEditingController();
-  // final rateController = TextEditingController();
-  // final meterController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
-  // --- Text-Filed ----
-  final Name = TextEditingController();
-  final DesignNo = TextEditingController();
-  final Meter = TextEditingController();
-  final Size = TextEditingController();
-  final Price = TextEditingController();
-  final Type = TextEditingController();
-  final Paking = TextEditingController();
-  final Color = TextEditingController();
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController designNoController = TextEditingController();
+  final TextEditingController meterController = TextEditingController();
+  final TextEditingController sizeController = TextEditingController();
+  final TextEditingController priceController = TextEditingController();
+  final TextEditingController typeController = TextEditingController();
+  final TextEditingController colorController = TextEditingController();
+  final TextEditingController packingController = TextEditingController();
 
-  // --- Focus Node ----
   final FocusNode nameFocusNode = FocusNode();
   final FocusNode designNoFocusNode = FocusNode();
   final FocusNode meterFocusNode = FocusNode();
@@ -53,9 +42,7 @@ class _AddProductPageState extends State<AddProductPage> {
   final FocusNode packingFocusNode = FocusNode();
 
   bool isLoading = false;
-  bool isImagePicked = false;
   List<Uint8List?> images = [];
-  Uint8List? compressedImage;
 
   Future<void> _pickImage() async {
     FocusScope.of(context).unfocus();
@@ -67,7 +54,7 @@ class _AddProductPageState extends State<AddProductPage> {
 
     if (!status.isGranted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Storage permission denied")),
+        const SnackBar(content: Text("Storage permission denied")),
       );
       return;
     }
@@ -86,49 +73,14 @@ class _AddProductPageState extends State<AddProductPage> {
         }
       }
     } catch (e) {
-      print("Error selecting images: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error selecting images: $e")),
       );
     }
   }
 
-  Future<Uint8List?> _compressImage(Uint8List imageBytes) async {
-    if (imageBytes.isEmpty) {
-      print("Error: Empty image data received for compression.");
-      return null;
-    }
-
-    try {
-      final compressedImage = await FlutterImageCompress.compressWithList(
-        imageBytes,
-        minWidth: 300,
-        minHeight: 300,
-        quality: 100,
-      );
-
-      if (compressedImage == null || compressedImage.isEmpty) {
-        print("Error: Image compression failed.");
-        return null;
-      }
-
-      return compressedImage;
-    } catch (e) {
-      print("Error during image compression: $e");
-      return null;
-    }
-  }
-
   Future<void> _addProduct() async {
-    if (Name.text.isEmpty ||
-        DesignNo.text.isEmpty ||
-        Meter.text.isEmpty ||
-        Size.text.isEmpty ||
-        Price.text.isEmpty ||
-        Type.text.isEmpty ||
-        Paking.text.isEmpty ||
-        Color.text.isEmpty ||
-        images.isEmpty) {
+    if (!_formKey.currentState!.validate() || images.isEmpty) {
       _showValidationDialog(
         'Please fill in all fields and select at least one image.',
       );
@@ -138,49 +90,45 @@ class _AddProductPageState extends State<AddProductPage> {
     setState(() => isLoading = true);
 
     try {
+      SharedPreferences pref = await SharedPreferences.getInstance();
+      final personName = pref.getString("name");
+      final token = pref.getString("token");
 
-      SharedPreferences pref1 = await SharedPreferences.getInstance();
-      final personName = pref1.getString("name");
+      if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid Credentials')),
+        );
+        setState(() => isLoading = false);
+        return;
+      }
 
-      List<MultipartFile> multipartImages =
-          images.map((image) {
-            return MultipartFile.fromBytes(image!, filename: 'image.jpg');
-          }).toList();
+      List<MultipartFile> multipartImages = images.map((image) {
+        return MultipartFile.fromBytes(image!, filename: 'image.jpg');
+      }).toList();
 
       FormData formData = FormData.fromMap({
-        "name": Name.text,
-        "designNo": DesignNo.text,
-        "meter": Meter.text,
-        "size": Size.text,
-        "rate": Price.text,
-        "type": Type.text,
-        "color": Color.text,
-        "packing": Paking.text,
+        "name": nameController.text,
+        "designNo": designNoController.text,
+        "meter": meterController.text,
+        "size": sizeController.text,
+        "rate": priceController.text,
+        "type": typeController.text,
+        "color": colorController.text,
+        "packing": packingController.text,
         "images": multipartImages,
         "person": personName
       });
 
-      SharedPreferences pref = await SharedPreferences.getInstance();
-      final token = pref.getString("token");
+      var response = await ApiService.addProduct(formData, token);
 
-      if(token != null){
-        var response = await ApiService.addProduct(formData, token);
-
-        if (response.statusCode == 201) {
-          widget.onProductAdded();
-          Navigator.pop(context, true);
-        } else {
-          _showValidationDialog(
-            'Unable to add product. Please check your information or try again later.',
-          );
-        }
-      }else{
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invalid Credentials')),
+      if (response.statusCode == 201) {
+        widget.onProductAdded();
+        Navigator.pop(context, true);
+      } else {
+        _showValidationDialog(
+          'Unable to add product. Please check your information or try again later.',
         );
       }
-
-
     } catch (e) {
       _showValidationDialog(
         'Something went wrong. Please check your input or try again later.',
@@ -189,72 +137,6 @@ class _AddProductPageState extends State<AddProductPage> {
       setState(() => isLoading = false);
     }
   }
-
-  // Future<void> _addProduct() async {
-  //   if (Name.text.isEmpty ||
-  //       DesignNo.text.isEmpty ||
-  //       Meter.text.isEmpty ||
-  //       Size.text.isEmpty ||
-  //       Price.text.isEmpty ||
-  //       Type.text.isEmpty ||
-  //       Paking.text.isEmpty ||
-  //       Color.text.isEmpty ||
-  //       // packingController.text.isEmpty ||
-  //       // rateController.text.isEmpty ||
-  //       // meterController.text.isEmpty ||
-  //       images.isEmpty) {
-  //     _showValidationDialog(
-  //       'Please fill all fields and select at least one image.',
-  //     );
-  //     return;
-  //   }
-  //
-  //   setState(() => isLoading = true);
-  //
-  //   try {
-  //     List<MultipartFile> multipartImages =
-  //         images.map((image) {
-  //           return MultipartFile.fromBytes(image!, filename: 'image.jpg');
-  //         }).toList();
-  //
-  //     FormData formData = FormData.fromMap({
-  //       // "type": typeController.text,
-  //       // "code": codeController.text,
-  //       // "designNo": designController.text,
-  //       // "name": nameController.text,
-  //       // "description": descriptionController.text,
-  //       // "size": sizeController.text,
-  //       // "color": colorController.text,
-  //       // "packing": packingController.text,
-  //       // "rate": rateController.text,
-  //       // "meter": meterController.text,
-  //       "name": Name.text,
-  //       "designNo": DesignNo.text,
-  //       "meter": Meter.text,
-  //       "size": Size.text,
-  //       "rate": Price.text,
-  //       "type": Type.text,
-  //       "code": Color.text,
-  //       "packing": Paking.text,
-  //       "images": multipartImages,
-  //     });
-  //
-  //     var response = await ApiService.addProduct(formData);
-  //
-  //     if (response.statusCode == 201) {
-  //       widget.onProductAdded();
-  //       Navigator.pop(context, true);
-  //     } else {
-  //       _showValidationDialog(
-  //         'Failed to add product. Status: ${response.statusCode}',
-  //       );
-  //     }
-  //   } catch (e) {
-  //     _showValidationDialog('An error occurred: $e');
-  //   } finally {
-  //     setState(() => isLoading = false);
-  //   }
-  // }
 
   void _showValidationDialog(String message) {
     showDialog(
@@ -266,19 +148,15 @@ class _AddProductPageState extends State<AddProductPage> {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 18,
-              color: Colors.redAccent, // Adds a more inviting color
+              color: Colors.redAccent,
             ),
           ),
           content: Text(
             message,
-            style: const TextStyle(
-              fontSize: 16,
-            ), // Slightly larger text for better readability
+            style: const TextStyle(fontSize: 16),
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(
-              15,
-            ), // Rounded corners for the dialog
+            borderRadius: BorderRadius.circular(15),
           ),
           actions: [
             TextButton(
@@ -287,7 +165,6 @@ class _AddProductPageState extends State<AddProductPage> {
                 'Got it!',
                 style: TextStyle(
                   color: Colors.blue,
-                  // Change button text color to blue for contrast
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -301,293 +178,59 @@ class _AddProductPageState extends State<AddProductPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0xFFF5F2E4),
       appBar: AppBar(
-        title: Text("Create New Product", style: TextStyle(color: Colors.white),),
-        backgroundColor: ui.Color(0xFF1D3557),
-        iconTheme: IconThemeData(color: Colors.white),
+        backgroundColor: ui.Color(0xFF6F4F37),
+        title: const Text("Create New Product", style: TextStyle(color: ui.Color(0xFFF5DEB3))),
+        iconTheme: const IconThemeData(color: ui.Color(0xFFF5DEB3)),
       ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildTextField(Name, "Name *", focusNode: nameFocusNode),
-              _buildTextField(
-                DesignNo,
-                "DesignNo *",
-                focusNode: designNoFocusNode,
-              ),
-              _buildTextField(
-                Meter,
-                "Meter *",
-                isNumeric: true,
-                focusNode: meterFocusNode,
-              ),
-              _buildTextField(Size, "Size *", focusNode: sizeFocusNode),
-              _buildTextField(
-                Price,
-                "Price *",
-                isNumeric: true,
-                focusNode: priceFocusNode,
-              ),
-              _buildTextField(Type, "Type *", focusNode: typeFocusNode),
-              _buildTextField(Color, "Color *", focusNode: colorFocusNode),
-              _buildTextField(Paking, "Packing *", focusNode: packingFocusNode),
-              // _buildTextField(packingController, "Packing *"),
-              // _buildTextField(rateController, "Rate *", isNumeric: true),
-              // _buildTextField(meterController, "Meter *", isNumeric: true),
-              const SizedBox(height: 10),
-              Padding(
-                padding: const EdgeInsets.only(top: 12.0, bottom: 10.0),
-                child: ElevatedButton(
-                  onPressed: images.isNotEmpty ? null : (){
-                    FocusScope.of(context).unfocus();
-                    _pickImage();
-                  },
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildTextField(nameController, "Name *", focusNode: nameFocusNode),
+                _buildTextField(designNoController, "Design No *", focusNode: designNoFocusNode),
+                _buildTextField(meterController, "Meter *", focusNode: meterFocusNode),
+                _buildTextField(sizeController, "Size *", focusNode: sizeFocusNode),
+                _buildTextField(priceController, "Price *", isNumeric: true, focusNode: priceFocusNode),
+                _buildTextField(typeController, "Type *", focusNode: typeFocusNode),
+                _buildTextField(colorController, "Color *", focusNode: colorFocusNode),
+                _buildTextField(packingController, "Packing *", focusNode: packingFocusNode),
+                const SizedBox(height: 20),
+                _buildImageSelectionSection(),
+                const SizedBox(height: 20),
+
+                ElevatedButton(
+                  onPressed: isLoading ? null : _addProduct,
                   style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: ui.Color(0xFF1D3557),
-                    // Text color
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 15,
-                      horizontal: 30,
-                    ),
-                    // Padding
+                    foregroundColor: Color(0xFFFFFDD0),
+                    backgroundColor: Color(0xFF6F4E37),
+                    padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        10,
-                      ), // Rounded corners
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    elevation: 5, // Shadow effect
+                    elevation: 5,
                   ),
-                  child: const Text(
-                    'Select Image',
+                  child: isLoading
+                      ? const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFFDD0)),
+                  )
+                      : const Text(
+                    "Add Product",
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-
+                      color: Color(0xFFFFFDD0), // Cream text
                     ),
                   ),
                 ),
-              ),
 
-
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  ...images.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final image = entry.value;
-                    return image != null
-                        ? GestureDetector(
-                          onTap: () async {
-
-                            FocusScope.of(context).unfocus();
-
-                            showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return Dialog(
-                                  child: Image.memory(
-                                    image,
-                                    fit: BoxFit.contain,
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                          child: Stack(
-                            children: [
-                              Image.memory(
-                                image,
-                                height: 150,
-                                width: 150,
-                                fit: BoxFit.cover,
-                              ),
-                              Positioned(
-                                top: 0,
-                                left: 0,
-                                child: GestureDetector(
-                                  onTap: () async {
-                                    FocusScope.of(context).unfocus();
-                                    showDialog(
-                                      context: context,
-                                      builder: (BuildContext context) {
-                                        return AlertDialog(
-                                          content: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              ListTile(
-                                                leading: Icon(
-                                                  Icons.zoom_out_map,
-                                                ),
-                                                title: Text('View Full Image'),
-                                                onTap: () {
-                                                  Navigator.pop(context);
-                                                  // Show full image dialog
-                                                  showDialog(
-                                                    context: context,
-                                                    builder: (
-                                                      BuildContext context,
-                                                    ) {
-                                                      return Dialog(
-                                                        child: Image.memory(
-                                                          image,
-                                                          fit: BoxFit.contain,
-                                                        ),
-                                                      );
-                                                    },
-                                                  );
-                                                },
-                                              ),
-                                              ListTile(
-                                                leading: Icon(Icons.crop),
-                                                title: Text('Crop Image'),
-                                                onTap: () async {
-                                                  Navigator.pop(context);
-                                                  try {
-                                                    final result =
-                                                        await Navigator.push(
-                                                          context,
-                                                          MaterialPageRoute(
-                                                            builder:
-                                                                (
-                                                                  context,
-                                                                ) => CropScreen(
-                                                                  image: image,
-                                                                  index: index,
-                                                                ),
-                                                          ),
-                                                        );
-                                                    if (result != null) {
-                                                      final croppedImage =
-                                                          result['croppedImage'];
-                                                      final index =
-                                                          result['index'];
-                                                      if (croppedImage !=
-                                                          null) {
-                                                        setState(() {
-                                                          images[index] =
-                                                              croppedImage;
-                                                        });
-                                                      }
-                                                    }
-                                                  } catch (e) {
-                                                    print(
-                                                      "Error cropping image: $e",
-                                                    );
-                                                    ScaffoldMessenger.of(
-                                                      context,
-                                                    ).showSnackBar(
-                                                      SnackBar(
-                                                        content: Text(
-                                                          "Failed to crop image: $e",
-                                                        ),
-                                                      ),
-                                                    );
-                                                  }
-                                                },
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                    );
-                                  },
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Colors.red,
-                                    ),
-                                    padding: const EdgeInsets.all(4),
-                                    child: const Icon(
-                                      Icons.zoom_out_map,
-                                      color: Colors.white,
-                                      size: 16,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                top: 0,
-                                right: 0,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    FocusScope.of(context).unfocus();
-                                    setState(() {
-                                      images.removeAt(index);
-                                    });
-                                  },
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Colors.red,
-                                    ),
-                                    padding: const EdgeInsets.all(4),
-                                    child: const Icon(
-                                      Icons.remove,
-                                      color: Colors.white,
-                                      size: 16,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                        : SizedBox();
-                  }).toList(),
-                  if (images.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 22.0),
-                      child: Container(
-                        margin: EdgeInsets.only(
-                          top: MediaQuery.of(context).size.height * 0.05,
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.add),
-                          onPressed: _pickImage,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: isLoading ? null : _addProduct,
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: ui.Color(0xFF1D3557),
-                  // Text color
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 15,
-                    horizontal: 30,
-                  ),
-                  // Padding
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10), // Rounded corners
-                  ),
-                  elevation: 5, // Shadow effect
-                ),
-                child:
-                    isLoading
-                        ? const CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<ui.Color>(
-                            Colors.white,
-                          ), // Loader color
-                        )
-                        : const Text(
-                          "Add Product",
-                          style: TextStyle(
-                            fontSize: 16, // Text size
-                            fontWeight: FontWeight.bold, // Text weight
-                          ),
-                        ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -595,25 +238,246 @@ class _AddProductPageState extends State<AddProductPage> {
   }
 
   Widget _buildTextField(
-    TextEditingController controller,
-    String label, {
-    bool isNumeric = false,
-    required FocusNode focusNode,
-  }) {
+      TextEditingController controller,
+      String label, {
+        bool isNumeric = false,
+        required FocusNode focusNode,
+      }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: TextField(
+      child: TextFormField(
+        textCapitalization: TextCapitalization.none,
         controller: controller,
         focusNode: focusNode,
-        keyboardType:
-            isNumeric
-                ? TextInputType.numberWithOptions(decimal: true)
-                : TextInputType.text,
+        keyboardType: isNumeric
+            ? const TextInputType.numberWithOptions(decimal: true)
+            : TextInputType.text,
+        inputFormatters: isNumeric
+            ? [] // no formatter for numbers
+            : [UpperCaseTextFormatter()], // custom formatter
         decoration: InputDecoration(
           labelText: label,
-          border: const OutlineInputBorder(),
+          labelStyle: const TextStyle(color: Color(0xFF432B1A)),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFF3EBCB)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFF432B1A)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.grey),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return 'Please enter $label';
+          }
+          return null;
+        },
       ),
     );
   }
+
+  Widget _buildImageSelectionSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Product Images *',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Color(0xFF432B1A)
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          images.isEmpty
+              ? 'At least one image is required'
+              : '${images.length} image(s) selected',
+          style: const TextStyle(fontSize: 14, color: Colors.grey),
+        ),
+        const SizedBox(height: 12),
+        images.isEmpty
+            ? SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _pickImage,
+            icon: const Icon(
+              Icons.add_photo_alternate,
+              color: Color(0xFF6F4E37), // Coffee brown icon
+            ),
+            label: const Text(
+              'SELECT IMAGES',
+              style: TextStyle(
+                color: Color(0xFF6F4E37), // Coffee brown text
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              side: const BorderSide(color: Color(0xFF6F4E37)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              backgroundColor: Color(0x22FFFDD0),
+            ),
+          ),
+
+        )
+            : GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            childAspectRatio: 1,
+          ),
+          itemCount: images.length,
+          itemBuilder: (context, index) => _buildImageThumbnail(index),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImageThumbnail(int index) {
+    return GestureDetector(
+      onTap: () => _showImageOptions(index),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.memory(
+              images[index]!,
+              fit: BoxFit.cover,
+            ),
+          ),
+          Positioned(
+            top: 4,
+            right: 4,
+            child: GestureDetector(
+              onTap: () => _showImageOptions(index),
+              child: Container(
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.black54,
+                ),
+                child: const Icon(
+                  Icons.more_vert,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 4,
+            right: 4,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  images.removeAt(index);
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.red[600],
+                ),
+                child: const Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showImageOptions(int index) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.zoom_out_map),
+                title: const Text('View Full Image'),
+                onTap: () {
+                  Navigator.pop(context);
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return Dialog(
+                        child: Image.memory(
+                          images[index]!,
+                          fit: BoxFit.contain,
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.crop),
+                title: const Text('Crop Image'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  try {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CropScreen(
+                          image: images[index]!,
+                          index: index,
+                        ),
+                      ),
+                    );
+                    if (result != null) {
+                      final croppedImage = result['croppedImage'];
+                      if (croppedImage != null) {
+                        setState(() {
+                          images[index] = croppedImage;
+                        });
+                      }
+                    }
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Failed to crop image: $e")),
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
+
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue,
+      TextEditingValue newValue,
+      ) {
+    return newValue.copyWith(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
+    );
+  }
+}
+

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
@@ -9,14 +10,18 @@ import 'dart:ui' as ui;
 import 'package:crop_image/crop_image.dart';
 import 'package:newprg/models/product.dart';
 import 'package:newprg/services/api_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class EditProductPage extends StatefulWidget {
   final Product productData;
   final VoidCallback refreshProducts;
 
-  const EditProductPage({Key? key, required this.productData, required this.refreshProducts})
-    : super(key: key);
+  const EditProductPage({
+    Key? key,
+    required this.productData,
+    required this.refreshProducts,
+  }) : super(key: key);
 
   @override
   _EditProductPageState createState() => _EditProductPageState();
@@ -68,21 +73,40 @@ class _EditProductPageState extends State<EditProductPage> {
   }
 
   Future<void> _pickImage() async {
-    try {
-      final pickedFile = await ImagePicker().pickImage(
-        source: ImageSource.gallery,
+    FocusScope.of(context).unfocus();
+
+    var status = await Permission.photos.request();
+    if (status.isDenied || status.isPermanentlyDenied) {
+      status = await Permission.storage.request();
+    }
+
+    if (!status.isGranted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Storage permission denied")),
       );
-      if (pickedFile != null) {
-        final imageBytes = await pickedFile.readAsBytes();
-        final compressedImage = await _compressImage(imageBytes);
-        if (compressedImage != null) {
-          setState(() {
-            newImages.add(compressedImage);
-          });
+      return;
+    }
+
+    try {
+      final List<XFile>? pickedFiles = await ImagePicker().pickMultiImage(
+        imageQuality: 100,
+      );
+
+      if (pickedFiles != null && pickedFiles.isNotEmpty) {
+        for (var pickedFile in pickedFiles) {
+          final imageBytes = await pickedFile.readAsBytes();
+          final compressedImage = await _compressImage(imageBytes);
+          if (compressedImage != null) {
+            setState(() {
+              newImages.add(compressedImage);
+            });
+          }
         }
       }
     } catch (e) {
-      _showDialog('Error', 'Failed to select image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error selecting images: $e")),
+      );
     }
   }
 
@@ -120,9 +144,9 @@ class _EditProductPageState extends State<EditProductPage> {
       final personName = pref.getString("name");
 
       List<MultipartFile> multipartImages =
-          newImages.map((image) {
-            return MultipartFile.fromBytes(image, filename: 'image.jpg');
-          }).toList();
+      newImages.map((image) {
+        return MultipartFile.fromBytes(image, filename: 'image.jpg');
+      }).toList();
 
       FormData formData = FormData.fromMap({
         "id": widget.productData.id,
@@ -136,16 +160,14 @@ class _EditProductPageState extends State<EditProductPage> {
         "packing": packingController.text,
         "existingImages": imageUrls,
         "images": multipartImages,
-        "person": personName!
+        "person": personName!,
       });
 
-
-
-      if(token != null){
+      if (token != null) {
         var response = await ApiService.updateProduct(
-            widget.productData.id.toString(),
-            formData,
-            token
+          widget.productData.id.toString(),
+          formData,
+          token,
         );
 
         if (response.statusCode == 200) {
@@ -161,8 +183,12 @@ class _EditProductPageState extends State<EditProductPage> {
             packing: packingController.text,
             code: "",
             description: '',
-            imagePaths: [...imageUrls, ...newImages.map((_) => 'new_image_url')],
-            person: personName
+            imagePaths: [
+              ...imageUrls,
+              ...newImages.map((_) => 'new_image_url'),
+            ],
+
+            person: personName,
           );
 
           Navigator.pop(context, updatedProduct);
@@ -170,11 +196,9 @@ class _EditProductPageState extends State<EditProductPage> {
         } else {
           _showDialog('Error', 'Update failed. Please try again.');
         }
-      }else{
-        _showDialog('Error', 'Access not provide');
+      } else {
+        _showDialog('Error', 'Access not provided');
       }
-
-
     } catch (e) {
       _showDialog('Error', 'Error updating product: $e');
     } finally {
@@ -216,7 +240,8 @@ class _EditProductPageState extends State<EditProductPage> {
   Future<bool> _onWillPop() async {
     return (await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder:
+          (context) => AlertDialog(
         title: Text('Discard Changes?'),
         content: Text('Are you sure you want to exit without saving?'),
         actions: [
@@ -230,20 +255,220 @@ class _EditProductPageState extends State<EditProductPage> {
           ),
         ],
       ),
-    )) ?? false;
+    )) ??
+        false;
   }
 
+  Widget _buildImageSelectionSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Product Images *',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: const Color(0xFF432B1A)
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          newImages.isEmpty && imageUrls.isEmpty
+              ? 'At least one image is required'
+              : '${newImages.length + imageUrls.length} image(s) selected',
+          style: const TextStyle(fontSize: 14, color: Colors.grey),
+        ),
+        const SizedBox(height: 12),
+        newImages.isEmpty && imageUrls.isEmpty
+            ? SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _pickImage,
+            icon: const Icon(Icons.add_photo_alternate),
+            label: const Text('SELECT IMAGES'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              side: const BorderSide(color: ui.Color(0xFF1D3557)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        )
+            : GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            childAspectRatio: 1,
+          ),
+          itemCount: newImages.length + imageUrls.length,
+          itemBuilder: (context, index) {
+            if (index < newImages.length) {
+              return _buildImageThumbnail(index, isNewImage: true);
+            } else {
+              return _buildImageThumbnail(index - newImages.length, isNewImage: false);
+            }
+          },
+        ),
+        if (newImages.isNotEmpty || imageUrls.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 22.0),
+            child: Container(
+              margin: EdgeInsets.only(
+                top: MediaQuery.of(context).size.height * 0.05,
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: _pickImage,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 
+  Widget _buildImageThumbnail(int index, {required bool isNewImage}) {
+    return GestureDetector(
+      onTap: () => _showImageOptions(index, isNewImage: isNewImage),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: isNewImage
+                ? Image.memory(
+              newImages[index],
+              fit: BoxFit.cover,
+            )
+                : FutureBuilder<Uint8List?>(
+              future: _fetchImageFromUrl(imageUrls[index]),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return CircularProgressIndicator();
+                }
+                return Image.memory(
+                  snapshot.data!,
+                  fit: BoxFit.cover,
+                );
+              },
+            ),
+          ),
+          Positioned(
+            top: 4,
+            right: 4,
+            child: GestureDetector(
+              onTap: () => _showImageOptions(index, isNewImage: isNewImage),
+              child: Container(
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.black54,
+                ),
+                child: const Icon(
+                  Icons.more_vert,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 4,
+            right: 4,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  if (isNewImage) {
+                    newImages.removeAt(index);
+                  } else {
+                    imageUrls.removeAt(index);
+                  }
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.red[600],
+                ),
+                child: const Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showImageOptions(int index, {required bool isNewImage}) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.zoom_out_map),
+                title: const Text('View Full Image'),
+                onTap: () {
+                  Navigator.pop(context);
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return Dialog(
+                        child: isNewImage
+                            ? Image.memory(
+                          newImages[index],
+                          fit: BoxFit.contain,
+                        )
+                            : FutureBuilder<Uint8List?>(
+                          future: _fetchImageFromUrl(imageUrls[index]),
+                          builder: (context, snapshot) {
+                            if (!snapshot.hasData) {
+                              return CircularProgressIndicator();
+                            }
+                            return Image.memory(
+                              snapshot.data!,
+                              fit: BoxFit.contain,
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
+        backgroundColor: Color(0xFFF5F2E4),
         appBar: AppBar(
-          title: Text("Edit Product", style: TextStyle(color: Colors.white)),
-          backgroundColor: Color(0xFF1D3557),
-          iconTheme: IconThemeData(color: Colors.white),
+          title: Text(
+            "Edit Product",
+            style: TextStyle(
+              color: Color(0xFFFFFDD0),
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: Color(0xFF6F4E37),
+          iconTheme: IconThemeData(color: Color(0xFFFFFDD0)),
         ),
         body: SingleChildScrollView(
           padding: EdgeInsets.all(16.0),
@@ -257,66 +482,7 @@ class _EditProductPageState extends State<EditProductPage> {
               _buildTextField(typeController, "Type"),
               _buildTextField(colorController, "Color"),
               _buildTextField(packingController, "Packing"),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: ElevatedButton(
-                  onPressed: newImages.isNotEmpty ? null : _pickImage,
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    backgroundColor: Color(0xFF1D3557),
-                  ),
-                  child: Text(
-                    'Select Image',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ),
-
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                alignment: WrapAlignment.center,
-                children: [
-                  ...imageUrls.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final url = entry.value;
-                    return FutureBuilder<Uint8List?>(
-                      future: _fetchImageFromUrl(url),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return CircularProgressIndicator();
-                        }
-                        return _buildImageWidget(snapshot.data!, index, url);
-                      },
-                    );
-                  }).toList(),
-
-                  ...newImages.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final image = entry.value;
-                    return _buildImageWidget(image, index, '');
-                  }).toList(),
-
-                  if (imageUrls.isNotEmpty || newImages.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 22.0),
-                      child: Container(
-                        margin: EdgeInsets.only(
-                          top: MediaQuery.of(context).size.height * 0.05,
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.add),
-                          onPressed: _pickImage,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-
+              _buildImageSelectionSection(),
               SizedBox(height: 20),
               ElevatedButton(
                 onPressed: isLoading ? null : _updateProduct,
@@ -328,15 +494,16 @@ class _EditProductPageState extends State<EditProductPage> {
                   backgroundColor: Color(0xFF1D3557),
                 ),
                 child:
-                    isLoading
-                        ? CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-
-                        )
-                        : Text(
-                          "Update Product",
-                          style: TextStyle(color: Colors.white),
-                        ),
+                isLoading
+                    ? CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Colors.white,
+                  ),
+                )
+                    : Text(
+                  "Update Product",
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ),
@@ -346,111 +513,41 @@ class _EditProductPageState extends State<EditProductPage> {
   }
 
   Widget _buildTextField(
-    TextEditingController controller,
-    String label, {
-    bool isNumeric = false,
-  }) {
+      TextEditingController controller,
+      String label, {
+        bool isNumeric = false,
+      }) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 8.0),
-      child: TextField(
+
+      child: TextFormField(
+        textCapitalization: TextCapitalization.none,
         controller: controller,
+          inputFormatters: isNumeric
+              ? [] // no formatter for numbers
+              : [UpperCaseTextFormatter()],
         keyboardType:
-            isNumeric
-                ? TextInputType.numberWithOptions(decimal: true)
-                : TextInputType.text,
+        isNumeric
+            ? TextInputType.numberWithOptions(decimal: true)
+            : TextInputType.text,
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(),
+          labelStyle: const TextStyle(color: Color(0xFF432B1A)),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFF3EBCB)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFF432B1A)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.grey),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
       ),
-    );
-  }
-
-  Widget _buildImageWidget(Uint8List image, int index, String url) {
-    return Stack(
-      children: [
-        GestureDetector(
-          onTap: () {
-            showDialog(
-              context: context,
-              builder:
-                  (context) =>
-                      Dialog(child: Image.memory(image, fit: BoxFit.contain)),
-            );
-          },
-          child: Image.memory(
-            image,
-            height: 150,
-            width: 150,
-            fit: BoxFit.cover,
-          ),
-        ),
-        Positioned(
-          top: 0,
-          right: 0,
-          child: GestureDetector(
-            onTap: () {
-              setState(() {
-                if (url.isNotEmpty) {
-                  imageUrls.removeAt(index);
-                } else {
-                  newImages.removeAt(index);
-                }
-              });
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-              ),
-              padding: EdgeInsets.all(4),
-              child: Icon(Icons.remove, color: Colors.white, size: 16),
-            ),
-          ),
-        ),
-        Positioned(
-          top: 0,
-          left: 0,
-          child: GestureDetector(
-            onTap: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (context) => CropScreen(
-                        image: image,
-                        index: index,
-                        originalUrl: url,
-                      ),
-                ),
-              );
-              if (result != null) {
-                final Uint8List? croppedImage = result['croppedImage'];
-                final int updatedIndex = result['index'];
-
-                if (croppedImage != null) {
-                  setState(() {
-                    if (url.isNotEmpty) {
-                      imageUrls.removeAt(index);
-                    } else {
-                      newImages.removeAt(index);
-                    }
-                    newImages.add(croppedImage);
-                  });
-                }
-              }
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-              ),
-              padding: EdgeInsets.all(4),
-              child: Icon(Icons.crop, color: Colors.white, size: 16),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -496,12 +593,12 @@ class _CropScreenState extends State<CropScreen> {
       final Uint8List croppedImageBytes = await _getCroppedImageBytes();
 
       final Uint8List? compressedImage =
-          await FlutterImageCompress.compressWithList(
-            croppedImageBytes,
-            minWidth: 300,
-            minHeight: 300,
-            quality: 20,
-          );
+      await FlutterImageCompress.compressWithList(
+        croppedImageBytes,
+        minWidth: 300,
+        minHeight: 300,
+        quality: 20,
+      );
 
       if (compressedImage == null || compressedImage.isEmpty) {
         throw Exception('Failed to compress cropped image');
@@ -527,6 +624,7 @@ class _CropScreenState extends State<CropScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0xFFF5F2E4),
       appBar: AppBar(
         title: Text("Crop Image"),
         actions: [
@@ -540,6 +638,19 @@ class _CropScreenState extends State<CropScreen> {
         controller: controller,
         image: Image.memory(widget.image),
       ),
+    );
+  }
+}
+
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue,
+      TextEditingValue newValue,
+      ) {
+    return newValue.copyWith(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
     );
   }
 }

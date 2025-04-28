@@ -1,5 +1,5 @@
 class Product {
-  final String id; // Added id field
+  final String id;
   final String type;
   final String code;
   final String designNo;
@@ -10,7 +10,8 @@ class Product {
   final String packing;
   final int rate;
   final String meter;
-  final List<String>? imagePaths; // Updated to handle multiple images
+  final List<String>? imagePaths;
+  final int? meterPerPrice;
   final String person;
 
   Product({
@@ -26,14 +27,15 @@ class Product {
     required this.rate,
     required this.meter,
     this.imagePaths,
-    required this.person
+    this.meterPerPrice,
+    required this.person,
   });
+
 
   @override
   String toString() {
-    return 'Product{id: $id, type: $type, code: $code, name: $name, description: $description, size: $size, color: $color, packing: $packing, rate: $rate, Meter: $meter, imagePaths: $imagePaths, person: $person}';
+    return 'Product{id: $id, type: $type, code: $code, name: $name, description: $description, size: $size, color: $color, packing: $packing, rate: $rate, Meter: $meter, imagePaths: $imagePaths, pricePerMeter: $meterPerPrice , person: $person}';
   }
-
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
@@ -48,9 +50,11 @@ class Product {
       packing: json['packing'].toString(),
       rate: int.tryParse(json['rate'].toString()) ?? 0,
       meter: json['meter'].toString(),
-      imagePaths: (json['imagePaths'] as List<dynamic>?)
-          ?.map((e) => e.toString())
-          .toList(),
+      imagePaths:
+          (json['imagePaths'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList(),
+      meterPerPrice: int.tryParse(json['meterPerPrice']?.toString() ?? '') ?? 0,
       person: json['person'].toString(),
     );
   }
@@ -69,7 +73,8 @@ class Product {
       'rate': rate,
       'meter': meter,
       'imagePaths': imagePaths ?? [],
-      "person": person
+      'meterPerPrice': meterPerPrice,
+      "person": person,
     };
   }
 
@@ -86,6 +91,7 @@ class Product {
     int? rate,
     String? meter,
     List<String>? imagePaths,
+    meterPerPrice,
     String? person,
   }) {
     return Product(
@@ -101,7 +107,8 @@ class Product {
       rate: rate ?? this.rate,
       meter: meter ?? this.meter,
       imagePaths: imagePaths ?? this.imagePaths,
-      person: person ?? this.person
+      meterPerPrice: this.meterPerPrice,
+      person: person ?? this.person,
     );
   }
 }

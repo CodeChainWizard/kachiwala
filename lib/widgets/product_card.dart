@@ -43,12 +43,25 @@ class _ProductCardState extends ConsumerState<ProductCard> {
   bool isSelected = false;
   Uint8List? compressedImage;
   bool isMultiSelectActive = false;
+  PageController _pageController = PageController();
+  int _currentPage = 0;
 
   @override
   void initState() {
     super.initState();
     _compressAndLoadImage();
-    // getEmailFromSharedPref();
+
+    _pageController.addListener(() {
+      setState(() {
+        _currentPage = _pageController.page?.toInt() ?? 0;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   void _handleSelectAll() {
@@ -200,6 +213,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
   @override
   Widget build(BuildContext context) {
     // print("Counter value in riverpods: $counterValue");
+    int imageCount = widget.product.imagePaths!.length;
 
     print("isSelectAll Value in ProductCard Page: ${widget.isSelectAll}");
     print("isSelectAll Value in ProductCard Ids: ${widget.selectedProductIds}");
@@ -295,6 +309,8 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                                   );
                                 },
                               ),
+
+                              // in this code i need to when i have 3 image and i current show 2 then show 3 dot and higligth the 2nd dot
                               Positioned(
                                 top: 8,
                                 right: 8,
@@ -312,70 +328,104 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                                     textStyle: TextStyle(fontSize: 12),
                                   ),
                                   onPressed: () {
+                                    setState(() {
+                                      _currentPage = 0;
+                                      _pageController = PageController(initialPage: 0);
+                                    });
                                     showDialog(
                                       context: context,
-                                      builder:
-                                          (context) => Dialog(
+                                      builder: (context) => StatefulBuilder(
+                                        builder: (context, setState) {
+                                          return Dialog(
                                             backgroundColor: Colors.transparent,
                                             insetPadding: EdgeInsets.zero,
                                             child: Container(
-                                              width:
-                                                  MediaQuery.of(
-                                                    context,
-                                                  ).size.width *
-                                                  0.7,
-                                              height:
-                                                  MediaQuery.of(
-                                                    context,
-                                                  ).size.height *
-                                                  0.5,
+                                              width: MediaQuery.of(context).size.width * 0.7,
+                                              height: MediaQuery.of(context).size.height * 0.5,
                                               color: Colors.black,
-                                              child: PageView.builder(
-                                                itemCount:
-                                                    widget
-                                                        .product
-                                                        .imagePaths!
-                                                        .length,
-                                                itemBuilder: (context, index) {
-                                                  final imageUrl =
-                                                      _resolveImageUrl(
-                                                        widget
-                                                            .product
-                                                            .imagePaths![index],
-                                                      );
-                                                  return GestureDetector(
-                                                    onTap:
-                                                        () =>
-                                                            Navigator.of(
-                                                              context,
-                                                            ).pop(),
-                                                    child: InteractiveViewer(
-                                                      child: Image.network(
-                                                        imageUrl,
-                                                        fit: BoxFit.contain,
-                                                        width: double.infinity,
-                                                        height: double.infinity,
-                                                        errorBuilder: (
-                                                          context,
-                                                          error,
-                                                          stackTrace,
-                                                        ) {
-                                                          return Icon(
-                                                            Icons.broken_image,
-                                                            size: 100,
-                                                            color: Colors.grey,
-                                                          );
-                                                        },
+                                              child: Column(
+                                                children: [
+                                                  Padding(
+                                                    padding: const EdgeInsets.all(10.0),
+                                                    child: Text(
+                                                      '$imageCount Images',
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: Colors.white,
                                                       ),
                                                     ),
-                                                  );
-                                                },
+                                                  ),
+                                                  Expanded(
+                                                    child: Stack(
+                                                      children: [
+                                                        PageView.builder(
+                                                          controller: _pageController,
+                                                          itemCount: imageCount,
+                                                          onPageChanged: (index) {
+                                                            setState(() {
+                                                              _currentPage = index;
+                                                            });
+                                                          },
+                                                          itemBuilder: (context, index) {
+                                                            final imageUrl = _resolveImageUrl(
+                                                                widget.product.imagePaths![index]);
+                                                            return GestureDetector(
+                                                              onTap: () => Navigator.of(context).pop(),
+                                                              child: InteractiveViewer(
+                                                                child: Image.network(
+                                                                  imageUrl,
+                                                                  fit: BoxFit.contain,
+                                                                  width: double.infinity,
+                                                                  height: double.infinity,
+                                                                  errorBuilder: (context, error, stackTrace) {
+                                                                    return Icon(
+                                                                      Icons.broken_image,
+                                                                      size: 100,
+                                                                      color: Colors.grey,
+                                                                    );
+                                                                  },
+                                                                ),
+                                                              ),
+                                                            );
+                                                          },
+                                                        ),
+                                                        Positioned(
+                                                          bottom: 10,
+                                                          left: 0,
+                                                          right: 0,
+                                                          child: Row(
+                                                            mainAxisAlignment: MainAxisAlignment.center,
+                                                            children: List.generate(imageCount, (index) {
+                                                              return Container(
+                                                                margin: EdgeInsets.symmetric(horizontal: 5),
+                                                                width: 8,
+                                                                height: 8,
+                                                                decoration: BoxDecoration(
+                                                                  color: index == _currentPage
+                                                                      ? Colors.blue
+                                                                      : Colors.white.withOpacity(0.5),
+                                                                  shape: BoxShape.circle,
+                                                                ),
+                                                              );
+                                                            }),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
-                                          ),
+                                          );
+                                        },
+                                      ),
                                     );
                                   },
-                                  child: Text("Preview"),
+                                  child: Text(
+                                    "Preview ($imageCount Images)",
+                                    style: TextStyle(color: Color(0xFFFFFDD0)),
+                                  ),
                                 ),
                               ),
                             ],
@@ -402,7 +452,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                             children: [
                               SizedBox(height: 10.0),
                               Text(
-                                'Type : ${widget.product.type}',
+                                'Design Number : ${widget.product.designNo}',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -438,9 +488,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                                         ],
                                       ),
                                       maxLines: 1,
-                                      overflow:
-                                          TextOverflow
-                                              .ellipsis, // Show "..." when text is too long
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
@@ -452,13 +500,13 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                                 children: [
                                   Expanded(
                                     child: Tooltip(
-                                      message: widget.product.person,
+                                      message: widget.product.meter,
                                       child: RichText(
                                         overflow: TextOverflow.ellipsis,
                                         text: TextSpan(
                                           children: [
                                             const TextSpan(
-                                              text: 'Person: ',
+                                              text: 'Meter: ',
                                               style: TextStyle(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.bold,
@@ -466,7 +514,7 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                                               ),
                                             ),
                                             TextSpan(
-                                              text: widget.product.person,
+                                              text: widget.product.meter,
                                               // The long name
                                               style: TextStyle(
                                                 fontSize:
@@ -479,6 +527,36 @@ class _ProductCardState extends ConsumerState<ProductCard> {
                                       ),
                                     ),
                                   ),
+
+                                  // Expanded(
+                                  //   child: Tooltip(
+                                  //     message: widget.product.person,
+                                  //     child: RichText(
+                                  //       overflow: TextOverflow.ellipsis,
+                                  //       text: TextSpan(
+                                  //         children: [
+                                  //           const TextSpan(
+                                  //             text: 'Person: ',
+                                  //             style: TextStyle(
+                                  //               fontSize: 14,
+                                  //               fontWeight: FontWeight.bold,
+                                  //               color: Colors.black,
+                                  //             ),
+                                  //           ),
+                                  //           TextSpan(
+                                  //             text: widget.product.person,
+                                  //             // The long name
+                                  //             style: TextStyle(
+                                  //               fontSize:
+                                  //                   isSmallScreen ? 14 : 16,
+                                  //               color: Colors.grey[600],
+                                  //             ),
+                                  //           ),
+                                  //         ],
+                                  //       ),
+                                  //     ),
+                                  //   ),
+                                  // ),
                                   IconButton(
                                     icon: const Icon(Icons.share),
                                     onPressed: () async {
