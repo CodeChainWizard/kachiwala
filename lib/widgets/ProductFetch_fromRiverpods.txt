@@ -1,0 +1,374 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:testproject/main.dart';
+import 'package:testproject/services/product.riverPod.dart';
+import 'package:testproject/widgets/Login.page.dart';
+import 'services/api_service.dart';
+import 'widgets/product_card.dart';
+import 'widgets/add_product_dialog.dart';
+import 'widgets/search_bar.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io' as io;
+import 'dart:async';
+
+// import 'package:testproject/widgets/add_product_dialog.dart' as addDialog;
+// import 'package:testproject/widgets/product_card.dart' as card;
+import 'package:testproject/models/product.dart' as model;
+// import 'package:testproject/services/product.riverPod.dart' as service;
+
+// --- Apply ReiverPod ---
+final counterProvider = StateProvider<int>((ref) => 0);
+// final productProvider =
+// StateNotifierProvider<ProductNotifier, List<model.Product>>((ref) {
+//   return ProductNotifier();
+// });
+
+class HomePage extends ConsumerStatefulWidget {
+  const HomePage({Key? key}) : super(key: key);
+
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<HomePage> {
+  List<model.Product> products = [];
+  List<model.Product> filteredProducts = [];
+  String searchQuery = "";
+  bool isSelectAll = false;
+  bool productSelection = false;
+
+  // --- Loading ---
+  bool isLoading = true;
+
+  // --- set the timer for API Called ---
+  Timer? _debounce;
+
+  bool getData = false;
+
+  late SharedPreferences pref;
+
+  @override
+  void initState() {
+    super.initState();
+    // _fetchProducts();
+    _initializePrefs();
+  }
+
+  Future<void> _initializePrefs() async {
+    pref = await SharedPreferences.getInstance();
+    setState(() {
+      getData = pref.getBool("longPress") ?? false;
+    });
+    print("Data state:- $getData");
+  }
+
+  // void incrementCounter(WidgetRef ref) {
+  //   final counterNotifier = ref.read(counterProvider.notifier);
+  //   counterNotifier.state++;
+  // }
+
+  void _refreshProducts(WidgetRef ref) {
+    ref.refresh(productProvider);
+  }
+
+  // Future<void> _fetchProducts() async {
+  //   setState(() {
+  //     isLoading = true;
+  //   });
+  //   try {
+  //     final fetchedProducts = await ApiService.fetchProducts();
+  //     if (!mounted) return;
+  //
+  //     setState(() {
+  //       products = fetchedProducts;
+  //       filteredProducts = List.from(fetchedProducts);
+  //       isLoading = false;
+  //     });
+  //   } catch (error) {
+  //     setState(() {
+  //       isLoading = false;
+  //     });
+  //     print("Error fetching products: $error");
+  //   }
+  // }
+
+  void _toggleSelectAll() {
+    setState(() {
+      isSelectAll = !isSelectAll;
+    });
+  }
+
+  void _onSearchChanged(String query) async {
+    setState(() {
+      searchQuery = query;
+    });
+
+    if (_debounce?.isActive ?? false) {
+      _debounce?.cancel();
+    }
+
+    _debounce = Timer(const Duration(milliseconds: 500), () async {
+      if (query.isEmpty) {
+        setState(() {
+          filteredProducts = [];
+        });
+      } else {
+        try {
+          setState(() {
+            isLoading = true;
+          });
+          List<model.Product> results = await ApiService.onSearchChanged(query);
+
+          setState(() {
+            filteredProducts = results;
+            isLoading = false;
+          });
+        } catch (e) {
+          setState(() {
+            filteredProducts = [];
+            isLoading = false;
+          });
+          print("Search error: $e");
+        }
+      }
+    });
+  }
+
+  Future<void> _shareProduct(List<model.Product> products) async {
+    try {
+      final directory = await getTemporaryDirectory();
+
+      List<XFile> imageFiles = [];
+
+      List<String> messageTexts = [];
+
+      for (int index = 0; index < products.length; index++) {
+        final product = products[index];
+
+        XFile? imageFile;
+        if (product.image != null) {
+          Uint8List productImageBytes = base64Decode(product.image!);
+          final filePath = '${directory.path}/product_$index.png';
+          final file = io.File(filePath);
+          await file.writeAsBytes(productImageBytes);
+          imageFile = XFile(filePath);
+          imageFiles.add(imageFile);
+        }
+      }
+
+      if (imageFiles.isNotEmpty) {
+        await Share.shareXFiles(
+          imageFiles,
+          text: messageTexts.join('\n---\n\n'),
+          subject: 'Check out these products!',
+        );
+      } else {
+        await Share.share(
+          messageTexts.join('\n---\n\n'),
+          subject: 'Check out these products!',
+        );
+      }
+    } catch (e) {
+      print("Error sharing products: $e");
+    }
+  }
+
+  int updateCounter(bool isSelected) {
+    final counter = ref.read(counterProvider.state);
+    int oldValue = counter.state;
+
+    if (isSelected) {
+      counter.state++;
+    } else {
+      counter.state--;
+      if (counter.state < 0) counter.state = 0;
+    }
+
+    if (oldValue != counter.state) {
+      print("Counter Updated: ${counter.state}");
+    }
+    return counter.state;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final productAsyncValue = ref.watch(productProvider);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Product List'),
+      ),
+      body: Column(
+        children: [
+          CustomSearchBar(onSearchChanged: _onSearchChanged),
+          Expanded(
+            child: productAsyncValue.when(
+              data: (products) {
+                return products.isEmpty
+                    ? const Center(
+                  child: Text(
+                    "No Products Found",
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                  ),
+                )
+                    : GridView.builder(
+                  gridDelegate:
+                  const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 8.0,
+                    crossAxisSpacing: 8.0,
+                    childAspectRatio: 3 / 4,
+                  ),
+                  itemCount: products.length,
+                  itemBuilder: (context, index) {
+                    return ProductCard(
+                      product: products[index],
+                      index: index,
+                      isGlobalSelected: isSelectAll,
+                      onTap: () {},
+                      updateCounter: updateCounter,
+                    );
+                  },
+                );
+              },
+              loading: () => const Center(
+                child: CircularProgressIndicator(),
+              ),
+              error: (error, stack) => Center(
+                child: Text(
+                  "Failed to load products",
+                  style: TextStyle(fontSize: 18, color: Colors.red),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+// @override
+  // Widget build(BuildContext context) {
+  //   final counterValue = ref.watch(counterProvider.state).state;
+  //
+  //   final productAsyncValue = ref.watch(productProvider);
+  //   print("data in home page from the RiverPod: $productAsyncValue");
+  //
+  //   if (isLoading) {
+  //     return Scaffold(
+  //       appBar: AppBar(
+  //         title: const Text('Product List'),
+  //         leading: IconButton(
+  //           icon: const Icon(Icons.logout),
+  //           onPressed: () async {
+  //             await setLoginStatus(false);
+  //
+  //             Navigator.pushReplacement(context,
+  //                 MaterialPageRoute(builder: (context) => LoginPage()));
+  //           }, // Call your logout function
+  //           tooltip: 'Logout',
+  //         ),
+  //         actions: [
+  //           IconButton(
+  //             icon: Icon(isSelectAll
+  //                 ? Icons.check_box
+  //                 : Icons.check_box_outline_blank),
+  //             onPressed: _toggleSelectAll,
+  //             tooltip: isSelectAll ? 'Deselect All' : 'Select All',
+  //           ),
+  //           IconButton(
+  //             icon: const Icon(Icons.refresh),
+  //             onPressed:() => _refreshProducts(ref),
+  //           ),
+  //         ],
+  //       ),
+  //       body: Column(
+  //         children: [
+  //           CustomSearchBar(onSearchChanged: _onSearchChanged),
+  //           const Center(
+  //             child: CircularProgressIndicator(),
+  //           ),
+  //         ],
+  //       ),
+  //     );
+  //   }
+  //   return Scaffold(
+  //       appBar: AppBar(
+  //         title: const Text('Product List'),
+  //         leading: IconButton(
+  //           icon: const Icon(Icons.logout), // Logout icon
+  //           onPressed: () async {
+  //             await setLoginStatus(false);
+  //
+  //             Navigator.pushReplacement(context,
+  //                 MaterialPageRoute(builder: (context) => LoginPage()));
+  //           },
+  //           tooltip: 'Logout',
+  //         ),
+  //         actions: [
+  //           IconButton(
+  //             icon: Icon(isSelectAll
+  //                 ? Icons.check_box
+  //                 : Icons.check_box_outline_blank),
+  //             onPressed: _toggleSelectAll,
+  //             tooltip: isSelectAll ? 'Deselect All' : 'Select All',
+  //           ),
+  //           IconButton(
+  //             icon: const Icon(Icons.refresh),
+  //             onPressed: () => _refreshProducts(ref),
+  //           ),
+  //         ],
+  //       ),
+  //       body: Column(
+  //         children: [
+  //           CustomSearchBar(onSearchChanged: _onSearchChanged),
+  //           Expanded(
+  //             child: filteredProducts.isEmpty
+  //                 ? const Center(
+  //                     child: Text(
+  //                       "No Products Found",
+  //                       style: TextStyle(fontSize: 18, color: Colors.grey),
+  //                     ),
+  //                   )
+  //                 : GridView.builder(
+  //                     gridDelegate:
+  //                         const SliverGridDelegateWithFixedCrossAxisCount(
+  //                       crossAxisCount: 2,
+  //                       mainAxisSpacing: 8.0,
+  //                       crossAxisSpacing: 8.0,
+  //                       childAspectRatio: 3 / 4,
+  //                     ),
+  //                     itemCount: filteredProducts.length,
+  //                     itemBuilder: (context, index) {
+  //                       return ProductCard(
+  //                         product: filteredProducts[index],
+  //                         index: index,
+  //                         isGlobalSelected: isSelectAll,
+  //                         onTap: () {},
+  //                         updateCounter: updateCounter,
+  //                       );
+  //                     },
+  //                   ),
+  //           ),
+  //         ],
+  //       ),
+  //       floatingActionButton: FloatingActionButton(
+  //         onPressed: (counterValue > 0)
+  //             ? () => _shareProduct(filteredProducts)
+  //             : () => showDialog(
+  //                   context: context,
+  //                   builder: (_) => AddProductDialog(
+  //                       onProductAdded: () => _refreshProducts),
+  //                 ),
+  //         child: Icon((counterValue > 0) ? Icons.share : Icons.add),
+  //       ));
+  // }
+}
+
+

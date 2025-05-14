@@ -1,0 +1,2 @@
+C:/shubham/newprg/android/app/.cxx/RelWithDebInfo/t1y62h1t/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/shubham/newprg/android/app/.cxx/RelWithDebInfo/t1y62h1t/armeabi-v7a/CMakeFiles/rebuild_cache.dir
